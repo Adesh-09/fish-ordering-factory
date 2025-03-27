@@ -22,7 +22,7 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
   const [error, setError] = useState("");
   
   // In a real app, this would be stored securely or verified on a server
-  const ADMIN_PASSWORD = "admin123";
+  const ADMIN_PASSWORD = "adesh";
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
