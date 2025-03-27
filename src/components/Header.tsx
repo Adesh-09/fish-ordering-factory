@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Settings } from "lucide-react";
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -22,6 +23,7 @@ const Header: React.FC = () => {
     { path: "/order", label: "Take Order", icon: "📝" },
     { path: "/kitchen", label: "Kitchen Display", icon: "🍲" },
     { path: "/billing", label: "Billing", icon: "💰" },
+    { path: "/settings", label: "Settings", icon: "⚙️" },
   ];
   
   return (

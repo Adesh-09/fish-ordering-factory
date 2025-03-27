@@ -3,7 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import AnimatedLogo from "@/components/AnimatedLogo";
-import { Users, ChartBar, Box, Printer, Lock, Fish, Coffee, Droplet } from "lucide-react";
+import { Users, ChartBar, Box, Printer, Lock, Coffee, Droplet, Settings } from "lucide-react";
 
 const Index = () => {
   const menuItems = [
@@ -18,7 +18,7 @@ const Index = () => {
     {
       title: "Kitchen Display",
       description: "View orders that need to be prepared",
-      icon: <Fish className="w-10 h-10 text-red-600" />,
+      icon: <Coffee className="w-10 h-10 text-red-600" />,
       link: "/kitchen",
       color: "from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20",
       borderColor: "border-red-200 dark:border-red-800"
@@ -54,6 +54,14 @@ const Index = () => {
       link: "/attendance",
       color: "from-cyan-50 to-cyan-100 dark:from-cyan-950/30 dark:to-cyan-900/20", 
       borderColor: "border-cyan-200 dark:border-cyan-800"
+    },
+    {
+      title: "Settings",
+      description: "Configure printer settings and preferences",
+      icon: <Settings className="w-10 h-10 text-gray-600" />,
+      link: "/settings",
+      color: "from-gray-50 to-gray-100 dark:from-gray-950/30 dark:to-gray-900/20",
+      borderColor: "border-gray-200 dark:border-gray-800"
     }
   ];
 
