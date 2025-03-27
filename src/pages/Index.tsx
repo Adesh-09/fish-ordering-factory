@@ -3,7 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import AnimatedLogo from "@/components/AnimatedLogo";
-import { Users, ChartBar, Box, Printer, Lock, Fish, Bottle, Water } from "lucide-react";
+import { Users, ChartBar, Box, Printer, Lock, Fish, Coffee, Droplet } from "lucide-react";
 
 const Index = () => {
   const menuItems = [

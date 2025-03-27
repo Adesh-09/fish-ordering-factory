@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
-import { Fish, Bottle, Box, FileText, FilePlus, FileMinus } from "lucide-react";
+import { Fish, Coffee, Box, FileText, FilePlus, FileMinus, Droplet } from "lucide-react";
 import { useOrders } from "@/hooks/useOrders";
 import PasswordModal from "@/components/PasswordModal";
 
@@ -17,7 +17,7 @@ import PasswordModal from "@/components/PasswordModal";
 const inventoryCategories = [
   { id: "flour", name: "Flour", icon: <Box className="h-5 w-5" /> },
   { id: "fish", name: "Fish", icon: <Fish className="h-5 w-5" /> },
-  { id: "beverages", name: "Beverages", icon: <Bottle className="h-5 w-5" /> },
+  { id: "beverages", name: "Beverages", icon: <Coffee className="h-5 w-5" /> },
   { id: "other", name: "Other Items", icon: <FileText className="h-5 w-5" /> }
 ];
 
