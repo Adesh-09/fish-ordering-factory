@@ -16,6 +16,7 @@ interface OrdersContextType {
   preparingOrders: Order[];
   readyOrders: Order[];
   completedOrders: Order[];
+  removeOrdersBeforeDate: (date: Date) => void;
 }
 
 const OrdersContext = createContext<OrdersContextType | undefined>(undefined);
@@ -100,6 +101,21 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const getOrderById = (orderId: string) => {
     return orders.find(order => order.id === orderId);
   };
+  
+  // Remove orders before a specific date (for billing statement removal)
+  const removeOrdersBeforeDate = (date: Date) => {
+    const filteredOrders = orders.filter(order => 
+      new Date(order.createdAt) >= date
+    );
+    
+    const removedCount = orders.length - filteredOrders.length;
+    setOrders(filteredOrders);
+    
+    toast({
+      title: "Orders Removed",
+      description: `${removedCount} orders before ${date.toLocaleDateString()} have been removed.`,
+    });
+  };
 
   // Filtered orders by status
   const pendingOrders = orders.filter(order => order.status === "pending");
@@ -123,7 +139,8 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         pendingOrders,
         preparingOrders,
         readyOrders,
-        completedOrders
+        completedOrders,
+        removeOrdersBeforeDate
       }}
     >
       {children}

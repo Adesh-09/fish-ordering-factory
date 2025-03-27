@@ -1,18 +1,25 @@
 
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { OrdersProvider, useOrders } from "@/hooks/useOrders";
+import { useOrders } from "@/hooks/useOrders";
 import OrderSummary from "@/components/OrderSummary";
 import BillPreview from "@/components/BillPreview";
 import Header from "@/components/Header";
 import { formatCurrency, Order } from "@/utils/orderUtils";
 import { toast } from "@/components/ui/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { CalendarX, Printer, Lock } from "lucide-react";
+import PasswordModal from "@/components/PasswordModal";
 
 const BillingSystemContent = () => {
-  const { orders, printOrder, changeOrderStatus } = useOrders();
+  const { orders, printOrder, changeOrderStatus, removeOrdersBeforeDate } = useOrders();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showBillPreview, setShowBillPreview] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showPasswordModal, setShowPasswordModal] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteMonth, setDeleteMonth] = useState<Date>(new Date());
   
   // Filter orders - exclude cancelled orders and filter by search query if present
   const filteredOrders = orders
@@ -52,6 +59,33 @@ const BillingSystemContent = () => {
     }
   };
   
+  const handleDeleteOrdersForMonth = () => {
+    // Create a date for the first day of the selected month
+    const startOfMonth = new Date(deleteMonth.getFullYear(), deleteMonth.getMonth(), 1);
+    
+    // Create a date for the first day of the next month
+    const endOfMonth = new Date(deleteMonth.getFullYear(), deleteMonth.getMonth() + 1, 0);
+    
+    // Filter orders to remove those within the selected month
+    removeOrdersBeforeDate(endOfMonth);
+    
+    setShowDeleteConfirm(false);
+    
+    toast({
+      title: "Bill Statements Removed",
+      description: `All bills for ${deleteMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} have been removed.`,
+    });
+  };
+  
+  if (showPasswordModal) {
+    return (
+      <PasswordModal 
+        onSuccess={() => setShowPasswordModal(false)}
+        onCancel={() => setShowPasswordModal(false)}
+      />
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
@@ -66,7 +100,7 @@ const BillingSystemContent = () => {
               </p>
             </div>
             
-            <div className="mt-4 md:mt-0">
+            <div className="mt-4 md:mt-0 flex space-x-2">
               <input
                 type="text"
                 placeholder="Search by order ID, table, or customer..."
@@ -74,6 +108,55 @@ const BillingSystemContent = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full md:w-auto px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
+              
+              <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                <DialogTrigger asChild>
+                  <Button variant="destructive">
+                    <CalendarX className="h-4 w-4 mr-2" />
+                    Remove Bills
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Remove Bill Statements</DialogTitle>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <p className="mb-6 text-gray-600 dark:text-gray-300">
+                      Select a month to remove all bill statements for that period. This action cannot be undone.
+                    </p>
+                    
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium mb-2">Select Month</label>
+                      <input
+                        type="month"
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        value={`${deleteMonth.getFullYear()}-${String(deleteMonth.getMonth() + 1).padStart(2, '0')}`}
+                        onChange={(e) => {
+                          const [year, month] = e.target.value.split('-').map(Number);
+                          setDeleteMonth(new Date(year, month - 1));
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="flex space-x-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteOrdersForMonth}
+                        className="flex-1"
+                      >
+                        Remove Bills
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
@@ -138,8 +221,9 @@ const BillingSystemContent = () => {
                       
                       <button
                         onClick={() => handleGenerateBill(order)}
-                        className="px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center"
                       >
+                        <Printer className="h-4 w-4 mr-1" />
                         Generate Bill
                       </button>
                     </div>
@@ -202,8 +286,9 @@ const BillingSystemContent = () => {
                       
                       <button
                         onClick={() => handleGenerateBill(order)}
-                        className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-400 text-white hover:bg-gray-500 transition-colors"
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-400 text-white hover:bg-gray-500 transition-colors flex items-center"
                       >
+                        <Printer className="h-4 w-4 mr-1" />
                         Reprint Bill
                       </button>
                     </div>
@@ -258,8 +343,9 @@ const BillingSystemContent = () => {
                       onClick={() => {
                         setShowBillPreview(true);
                       }}
-                      className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                      className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center"
                     >
+                      <Printer className="h-4 w-4 mr-2" />
                       Generate Bill
                     </button>
                   </div>
@@ -308,9 +394,7 @@ const BillingSystemContent = () => {
 
 // Wrap with OrdersProvider
 const BillingSystem = () => (
-  <OrdersProvider>
-    <BillingSystemContent />
-  </OrdersProvider>
+  <BillingSystemContent />
 );
 
 export default BillingSystem;

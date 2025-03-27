@@ -1,105 +1,119 @@
 
 import React from "react";
-import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { OrdersProvider } from "@/hooks/useOrders";
+import { motion } from "framer-motion";
 import AnimatedLogo from "@/components/AnimatedLogo";
+import { Users, ChartBar, Box, Printer, Lock, Fish, Bottle, Water } from "lucide-react";
 
 const Index = () => {
-  const features = [
+  const menuItems = [
     {
-      title: "Mobile Ordering",
-      description: "Take orders quickly and easily on any device.",
-      icon: "📝",
-      path: "/order",
-      color: "from-blue-600 to-blue-400",
+      title: "Order Management",
+      description: "Create and manage customer orders",
+      icon: <Printer className="w-10 h-10 text-blue-600" />,
+      link: "/order",
+      color: "from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20",
+      borderColor: "border-blue-200 dark:border-blue-800"
     },
     {
       title: "Kitchen Display",
-      description: "Real-time order tracking for kitchen staff.",
-      icon: "🍲",
-      path: "/kitchen",
-      color: "from-green-600 to-green-400",
+      description: "View orders that need to be prepared",
+      icon: <Fish className="w-10 h-10 text-red-600" />,
+      link: "/kitchen",
+      color: "from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20",
+      borderColor: "border-red-200 dark:border-red-800"
     },
     {
       title: "Billing System",
-      description: "Generate and print bills automatically.",
-      icon: "💰",
-      path: "/billing",
-      color: "from-purple-600 to-purple-400",
+      description: "Generate and print bills",
+      icon: <Lock className="w-10 h-10 text-purple-600" />,
+      link: "/billing",
+      color: "from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20",
+      borderColor: "border-purple-200 dark:border-purple-800"
     },
+    {
+      title: "Inventory Management",
+      description: "Track fish, flour, drinks and other supplies",
+      icon: <Box className="w-10 h-10 text-green-600" />,
+      link: "/inventory",
+      color: "from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20",
+      borderColor: "border-green-200 dark:border-green-800"
+    },
+    {
+      title: "Analytics",
+      description: "View sales reports and charts",
+      icon: <ChartBar className="w-10 h-10 text-yellow-600" />,
+      link: "/analytics",
+      color: "from-yellow-50 to-yellow-100 dark:from-yellow-950/30 dark:to-yellow-900/20",
+      borderColor: "border-yellow-200 dark:border-yellow-800"
+    },
+    {
+      title: "Attendance",
+      description: "Track employee attendance",
+      icon: <Users className="w-10 h-10 text-cyan-600" />,
+      link: "/attendance",
+      color: "from-cyan-50 to-cyan-100 dark:from-cyan-950/30 dark:to-cyan-900/20", 
+      borderColor: "border-cyan-200 dark:border-cyan-800"
+    }
   ];
 
   return (
-    <OrdersProvider>
-      <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
-        <header className="pt-20 pb-10 px-4 text-center">
-          <AnimatedLogo className="mx-auto" />
-        </header>
-        
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8, duration: 0.6 }}
-            className="text-center mb-16"
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6 flex flex-col">
+      <AnimatedLogo className="my-8" />
+      
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.5 }}
+        className="max-w-6xl w-full mx-auto mt-4 md:mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
+        {menuItems.map((item, index) => (
+          <Link
+            key={item.title}
+            to={item.link}
+            className="block"
           >
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Restaurant Management System
-            </h2>
-            <p className="max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-300">
-              Streamline your operations with our elegant and intuitive restaurant management system.
-            </p>
-          </motion.div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 * (index + 5), duration: 0.5 }}
-              >
-                <Link
-                  to={feature.path}
-                  className="block h-full transition-all duration-300 transform hover:-translate-y-2"
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
+              whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
+              className={`relative overflow-hidden h-full rounded-2xl border ${item.borderColor} bg-gradient-to-br ${item.color} p-6 flex flex-col transition-all duration-300`}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                  {item.icon}
+                </div>
+                <motion.div
+                  whileHover={{ rotate: 15 }}
+                  className="text-gray-400 dark:text-gray-600"
                 >
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md h-full overflow-hidden border border-gray-200 dark:border-gray-700 group">
-                    <div className={`h-24 bg-gradient-to-r ${feature.color} flex items-center justify-center`}>
-                      <span className="text-4xl">{feature.icon}</span>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        {feature.title}
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300">
-                        {feature.description}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-          
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5, duration: 0.8 }}
-            className="mt-20 text-center"
-          >
-            <p className="text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Designed specifically for Jayesh Machhi Khanaval, this system helps streamline order taking, 
-              kitchen operations, and billing processes to deliver an exceptional dining experience.
-            </p>
-          </motion.div>
-        </main>
-        
-        <footer className="py-6 px-4 text-center text-gray-600 dark:text-gray-400 text-sm">
-          <p>© {new Date().getFullYear()} जयेश मच्छी खानावल. All rights reserved.</p>
-        </footer>
-      </div>
-    </OrdersProvider>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </motion.div>
+              </div>
+              
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                {item.title}
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300">
+                {item.description}
+              </p>
+            </motion.div>
+          </Link>
+        ))}
+      </motion.div>
+      
+      <motion.footer
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.3, duration: 0.5 }}
+        className="mt-auto py-6 text-center text-gray-500 dark:text-gray-400"
+      >
+        <p>© {new Date().getFullYear()} जयेश मच्छी खानावल - Jayesh Machhi Khanaval</p>
+      </motion.footer>
+    </div>
   );
 };
 
