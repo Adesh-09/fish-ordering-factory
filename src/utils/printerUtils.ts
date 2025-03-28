@@ -1,5 +1,5 @@
 
-import { PrinterConfig } from "./orderUtils";
+import { PrinterConfig } from "@/types/printerTypes";
 
 // Check if Web Bluetooth API is available
 export const isBluetooth5Available = (): boolean => {
