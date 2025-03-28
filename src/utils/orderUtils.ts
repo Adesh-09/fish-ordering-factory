@@ -1,5 +1,7 @@
+
 import { MenuItem, getMenuItemById } from "./menuData";
 import { printToBluetoothPrinter, printToNetworkPrinter } from "./printerUtils";
+import { InventoryItem, updateInventoryQuantity } from "./inventoryUtils";
 
 export interface OrderItem {
   id: string;
@@ -7,6 +9,7 @@ export interface OrderItem {
   quantity: number;
   notes?: string;
   customizations?: string[];
+  isTakeAway?: boolean;
 }
 
 export interface Order {
@@ -19,6 +22,7 @@ export interface Order {
   notes?: string;
   customerName?: string;
   isPrinted: boolean;
+  isTakeAway?: boolean;
 }
 
 export interface PrinterConfig {
@@ -30,6 +34,16 @@ export interface PrinterConfig {
   paperWidth: "58mm" | "80mm";
   enabled: boolean;
   location: "kitchen" | "billing" | "inventory";
+}
+
+export interface OrderAnalytics {
+  date: string;
+  totalOrders: number;
+  totalSales: number;
+  itemsSold: Record<string, number>;
+  averageOrderValue: number;
+  takeAwayOrders: number;
+  dineInOrders: number;
 }
 
 export const generateId = (): string => {
@@ -54,7 +68,8 @@ export const createOrder = (
   tableNumber: number,
   items: OrderItem[],
   customerName?: string,
-  notes?: string
+  notes?: string,
+  isTakeAway: boolean = false
 ): Order => {
   return {
     id: generateId(),
@@ -66,11 +81,14 @@ export const createOrder = (
     customerName,
     notes,
     isPrinted: false,
+    isTakeAway,
   };
 };
 
-export const addItemToOrder = (order: Order, menuItemId: string, quantity: number = 1, notes?: string): Order => {
-  const existingItemIndex = order.items.findIndex(item => item.menuItemId === menuItemId);
+export const addItemToOrder = (order: Order, menuItemId: string, quantity: number = 1, notes?: string, isTakeAway?: boolean): Order => {
+  const existingItemIndex = order.items.findIndex(item => 
+    item.menuItemId === menuItemId && item.isTakeAway === isTakeAway
+  );
   
   if (existingItemIndex >= 0) {
     const updatedItems = [...order.items];
@@ -94,7 +112,8 @@ export const addItemToOrder = (order: Order, menuItemId: string, quantity: numbe
           id: generateId(),
           menuItemId,
           quantity,
-          notes
+          notes,
+          isTakeAway
         }
       ],
       updatedAt: new Date(),
@@ -183,6 +202,7 @@ export const generatePrintableOrder = (order: Order): string => {
     Table: ${order.tableNumber}
     Time: ${order.createdAt.toLocaleTimeString()}
     Date: ${order.createdAt.toLocaleDateString()}
+    ${order.isTakeAway ? "*** TAKE AWAY ***" : ""}
     ------------------------------
     Items:
   `;
@@ -192,6 +212,7 @@ export const generatePrintableOrder = (order: Order): string => {
     if (menuItem) {
       printContent += `
       ${item.quantity} x ${menuItem.nameEn} (${formatCurrency(menuItem.price)})
+      ${item.isTakeAway ? "[TAKE AWAY]" : ""}
       ${item.notes ? `  Note: ${item.notes}` : ''}
       `;
     }
@@ -340,4 +361,157 @@ export const getTimeElapsed = (createdAt: Date): string => {
     const hours = Math.floor(diffMins / 60);
     return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
   }
+};
+
+// Update inventory when order is completed
+export const updateInventoryFromOrder = (order: Order, inventoryItems: InventoryItem[]): InventoryItem[] => {
+  if (order.status !== "completed") {
+    return inventoryItems;
+  }
+  
+  let updatedInventory = [...inventoryItems];
+  
+  order.items.forEach(orderItem => {
+    const menuItem = getMenuItemById(orderItem.menuItemId);
+    if (!menuItem || !menuItem.inventoryItemId) return;
+    
+    // Find associated inventory item
+    const inventoryItemIndex = updatedInventory.findIndex(item => item.id === menuItem.inventoryItemId);
+    if (inventoryItemIndex === -1) return;
+    
+    // Calculate new quantity
+    const currentQuantity = updatedInventory[inventoryItemIndex].quantity;
+    const newQuantity = Math.max(0, currentQuantity - orderItem.quantity);
+    
+    // Update inventory item
+    updatedInventory[inventoryItemIndex] = {
+      ...updatedInventory[inventoryItemIndex],
+      quantity: newQuantity,
+      lastUpdated: new Date(),
+      inStock: newQuantity > 0
+    };
+  });
+  
+  return updatedInventory;
+};
+
+// Store analytics data for the month
+export const saveOrderAnalytics = (order: Order): void => {
+  if (order.status !== "completed") return;
+  
+  const today = new Date();
+  const monthKey = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+  const analyticsKey = `analytics-${monthKey}`;
+  
+  // Load existing analytics
+  const existingData = localStorage.getItem(analyticsKey);
+  let monthlyAnalytics: OrderAnalytics[] = existingData ? JSON.parse(existingData) : [];
+  
+  // Format date for grouping
+  const orderDate = new Date(order.createdAt);
+  const dateKey = `${orderDate.getFullYear()}-${(orderDate.getMonth() + 1).toString().padStart(2, '0')}-${orderDate.getDate().toString().padStart(2, '0')}`;
+  
+  // Find existing entry for this date
+  const existingEntryIndex = monthlyAnalytics.findIndex(entry => entry.date === dateKey);
+  const orderTotal = calculateOrderTotal(order);
+  
+  if (existingEntryIndex >= 0) {
+    // Update existing entry
+    const existingEntry = monthlyAnalytics[existingEntryIndex];
+    const newTotalOrders = existingEntry.totalOrders + 1;
+    const newTotalSales = existingEntry.totalSales + orderTotal;
+    
+    // Update items sold counts
+    const updatedItemsSold = { ...existingEntry.itemsSold };
+    order.items.forEach(item => {
+      const menuItem = getMenuItemById(item.menuItemId);
+      if (menuItem) {
+        const itemKey = menuItem.id;
+        updatedItemsSold[itemKey] = (updatedItemsSold[itemKey] || 0) + item.quantity;
+      }
+    });
+    
+    monthlyAnalytics[existingEntryIndex] = {
+      ...existingEntry,
+      totalOrders: newTotalOrders,
+      totalSales: newTotalSales,
+      itemsSold: updatedItemsSold,
+      averageOrderValue: newTotalSales / newTotalOrders,
+      takeAwayOrders: existingEntry.takeAwayOrders + (order.isTakeAway ? 1 : 0),
+      dineInOrders: existingEntry.dineInOrders + (order.isTakeAway ? 0 : 1)
+    };
+  } else {
+    // Create new entry for this date
+    const itemsSold: Record<string, number> = {};
+    order.items.forEach(item => {
+      const menuItem = getMenuItemById(item.menuItemId);
+      if (menuItem) {
+        itemsSold[menuItem.id] = item.quantity;
+      }
+    });
+    
+    monthlyAnalytics.push({
+      date: dateKey,
+      totalOrders: 1,
+      totalSales: orderTotal,
+      itemsSold,
+      averageOrderValue: orderTotal,
+      takeAwayOrders: order.isTakeAway ? 1 : 0,
+      dineInOrders: order.isTakeAway ? 0 : 1
+    });
+  }
+  
+  // Save analytics data
+  localStorage.setItem(analyticsKey, JSON.stringify(monthlyAnalytics));
+};
+
+// Print monthly reports
+export const printMonthlyReport = async (month: Date): Promise<boolean> => {
+  const monthKey = `${month.getFullYear()}-${(month.getMonth() + 1).toString().padStart(2, '0')}`;
+  const analyticsKey = `analytics-${monthKey}`;
+  
+  const analyticsData = localStorage.getItem(analyticsKey);
+  if (!analyticsData) return false;
+  
+  const monthlyAnalytics: OrderAnalytics[] = JSON.parse(analyticsData);
+  
+  const printer = getDefaultPrinter("billing") || getDefaultPrinter("inventory");
+  if (!printer) return false;
+  
+  let reportContent = `
+    JAYESH MACHHI KHANAVAL
+    ------------------------------
+    MONTHLY REPORT: ${month.toLocaleString('default', { month: 'long', year: 'numeric' })}
+    ------------------------------
+    
+    Date        Orders   Sales     Avg Order   Take Away
+    ------------------------------
+  `;
+  
+  let totalOrders = 0;
+  let totalSales = 0;
+  let totalTakeAway = 0;
+  
+  monthlyAnalytics.forEach(day => {
+    const dateParts = day.date.split('-');
+    const shortDate = `${dateParts[2]}/${dateParts[1]}`;
+    
+    reportContent += `
+    ${shortDate.padEnd(12)}${String(day.totalOrders).padEnd(9)}${formatCurrency(day.totalSales).padEnd(10)}${formatCurrency(day.averageOrderValue).padEnd(12)}${day.takeAwayOrders}
+    `;
+    
+    totalOrders += day.totalOrders;
+    totalSales += day.totalSales;
+    totalTakeAway += day.takeAwayOrders;
+  });
+  
+  const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+  
+  reportContent += `
+    ------------------------------
+    TOTALS:     ${totalOrders}     ${formatCurrency(totalSales)}   ${formatCurrency(avgOrderValue)}    ${totalTakeAway}
+    ------------------------------
+  `;
+  
+  return await printToPrinter(reportContent, printer);
 };

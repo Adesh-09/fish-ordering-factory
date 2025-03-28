@@ -16,6 +16,8 @@ import OrderItemComponent from "@/components/OrderItem";
 import OrderSummary from "@/components/OrderSummary";
 import Header from "@/components/Header";
 import { toast } from "@/components/ui/use-toast";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const OrderPage = () => {
   const { addOrder, printOrder, changeOrderStatus } = useOrders();
@@ -26,6 +28,7 @@ const OrderPage = () => {
   const [customerName, setCustomerName] = useState("");
   const [showOrderPreview, setShowOrderPreview] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
+  const [isTakeAway, setIsTakeAway] = useState(false);
   
   const handleSelectItem = (item: MenuItem) => {
     const existingItemIndex = selectedItems.findIndex(
@@ -48,6 +51,7 @@ const OrderPage = () => {
           id: `item-${Date.now()}`,
           menuItemId: item.id,
           quantity: 1,
+          isTakeAway: isTakeAway,
         },
       ]);
     }
@@ -97,7 +101,8 @@ const OrderPage = () => {
       tableNumber,
       selectedItems,
       customerName || undefined,
-      orderNotes || undefined
+      orderNotes || undefined,
+      isTakeAway
     );
     
     setCreatedOrder(newOrder);
@@ -115,10 +120,11 @@ const OrderPage = () => {
       setCustomerName("");
       setShowOrderPreview(false);
       setCreatedOrder(null);
+      setIsTakeAway(false);
       
       toast({
         title: "Order Placed Successfully",
-        description: `Order for Table ${tableNumber} has been placed.`,
+        description: `Order for ${isTakeAway ? 'Take Away' : `Table ${tableNumber}`} has been placed.`,
       });
     }
   };
@@ -137,37 +143,52 @@ const OrderPage = () => {
           <div className="w-full md:w-2/3">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-6">
               <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
-                New Order - Table {tableNumber}
+                New Order {isTakeAway ? "- Take Away" : `- Table ${tableNumber}`}
               </h2>
               
-              <div className="mb-4 flex items-center space-x-2">
-                <label htmlFor="tableNumber" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Table:
-                </label>
-                <select
-                  id="tableNumber"
-                  value={tableNumber}
-                  onChange={(e) => setTableNumber(Number(e.target.value))}
-                  className="py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white"
-                >
-                  {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
-                    <option key={num} value={num}>
-                      {num}
-                    </option>
-                  ))}
-                </select>
+              <div className="mb-4 flex flex-wrap items-center gap-4">
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="take-away" 
+                    checked={isTakeAway} 
+                    onCheckedChange={setIsTakeAway} 
+                  />
+                  <Label htmlFor="take-away">Take Away</Label>
+                </div>
                 
-                <label htmlFor="customerName" className="ml-4 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Customer:
-                </label>
-                <input
-                  id="customerName"
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Optional"
-                  className="py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white flex-1"
-                />
+                {!isTakeAway && (
+                  <div className="flex items-center space-x-2">
+                    <label htmlFor="tableNumber" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Table:
+                    </label>
+                    <select
+                      id="tableNumber"
+                      value={tableNumber}
+                      onChange={(e) => setTableNumber(Number(e.target.value))}
+                      className="py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white"
+                    >
+                      {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
+                        <option key={num} value={num}>
+                          {num}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                
+                <div className="flex items-center space-x-2 flex-grow">
+                  <label htmlFor="customerName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Customer:
+                  </label>
+                  <input
+                    id="customerName"
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Optional"
+                    className="py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white flex-1"
+                  />
+                </div>
               </div>
             </div>
             
@@ -217,7 +238,7 @@ const OrderPage = () => {
           <div className="w-full md:w-1/3">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 sticky top-24">
               <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-                Order Summary
+                Order Summary {isTakeAway && <span className="text-sm font-normal ml-2 bg-amber-100 text-amber-800 px-2 py-1 rounded">Take Away</span>}
               </h2>
               
               {selectedItems.length === 0 ? (

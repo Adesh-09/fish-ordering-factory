@@ -1,7 +1,16 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Order, createOrder, calculateOrderTotal, updateOrderStatus, markOrderAsPrinted } from "@/utils/orderUtils";
+import { 
+  Order, 
+  createOrder, 
+  calculateOrderTotal, 
+  updateOrderStatus, 
+  markOrderAsPrinted,
+  updateInventoryFromOrder,
+  saveOrderAnalytics 
+} from "@/utils/orderUtils";
 import { toast } from "@/components/ui/use-toast";
+import { getInventoryItems, saveInventoryItems } from "@/utils/inventoryUtils";
 
 interface OrdersContextType {
   orders: Order[];
@@ -53,7 +62,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setOrders(prevOrders => [order, ...prevOrders]);
     toast({
       title: "Order Created",
-      description: `Order #${order.id.slice(0, 8)} for Table ${order.tableNumber} has been created.`,
+      description: `Order #${order.id.slice(0, 8)} ${order.isTakeAway ? '(Take Away)' : `for Table ${order.tableNumber}`} has been created.`,
     });
   };
 
@@ -91,6 +100,24 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     
     const updatedOrder = updateOrderStatus(orderToUpdate, status);
     updateOrder(updatedOrder);
+    
+    // If order is marked as completed, update inventory
+    if (status === "completed" && orderToUpdate.status !== "completed") {
+      // Get current inventory
+      const inventoryItems = getInventoryItems();
+      // Update inventory based on order items
+      const updatedInventory = updateInventoryFromOrder(updatedOrder, inventoryItems);
+      // Save updated inventory
+      saveInventoryItems(updatedInventory);
+      
+      // Save order analytics
+      saveOrderAnalytics(updatedOrder);
+      
+      toast({
+        title: "Inventory Updated",
+        description: "Inventory quantities have been updated based on this order.",
+      });
+    }
     
     toast({
       title: "Status Updated",
