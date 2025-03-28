@@ -1,4 +1,3 @@
-
 export interface MenuItem {
   id: string;
   name: string;
@@ -7,6 +6,7 @@ export interface MenuItem {
   category: string;
   description?: string;
   image?: string;
+  inventoryItemId?: string; // Added this property
 }
 
 export interface MenuCategory {

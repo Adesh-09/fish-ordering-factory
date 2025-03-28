@@ -5,7 +5,7 @@ import { MenuItem, getMenuItemById } from "@/utils/menuData";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/orderUtils";
-import { TakeoutDining } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 
 interface OrderItemProps {
   item: OrderItemType;
@@ -49,7 +49,7 @@ const OrderItem: React.FC<OrderItemProps> = ({
               {menuItem.name}
             </h3>
             {item.isTakeAway && (
-              <TakeoutDining className="h-4 w-4 text-amber-500" />
+              <ShoppingBag className="h-4 w-4 text-amber-500" />
             )}
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">
