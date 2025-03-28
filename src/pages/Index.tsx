@@ -73,21 +73,59 @@ const Index = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.5 }}
-        className="flex justify-center mb-8"
+        className="flex justify-center mb-10"
       >
         <div className="relative">
-          <img 
-            src="/lovable-uploads/99f1e3e2-3656-4051-8175-94e4307dd3c7.png" 
-            alt="Jayesh - Owner" 
-            className="w-32 h-32 rounded-full object-cover border-4 border-blue-500 shadow-lg"
-          />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ 
+              delay: 0.6, 
+              duration: 0.7,
+              type: "spring",
+              stiffness: 100
+            }}
+            className="relative"
+          >
+            <motion.img 
+              src="/lovable-uploads/7d8ba772-c3a0-4ea0-bed6-713a66ab35a6.png" 
+              alt="Jayesh - Owner" 
+              className="w-48 h-48 md:w-56 md:h-56 rounded-full object-cover border-4 border-blue-500 shadow-xl"
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                borderColor: "#3B82F6" 
+              }}
+              animate={{
+                y: [0, -8, 0]
+              }}
+              transition={{
+                y: {
+                  repeat: Infinity,
+                  duration: 3,
+                  ease: "easeInOut"
+                }
+              }}
+            />
+            <motion.div 
+              className="absolute -bottom-2 -right-2 w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 1.2, duration: 0.4, type: "spring" }}
+              whileHover={{ rotate: 10, scale: 1.1 }}
+            >
+              <span className="text-white text-lg font-bold">👑</span>
+            </motion.div>
+          </motion.div>
+          
           <motion.div 
-            className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white text-xs font-medium px-3 py-1 rounded-full whitespace-nowrap"
+            className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-full whitespace-nowrap shadow-lg"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
+            transition={{ delay: 1, duration: 0.5 }}
+            whileHover={{ scale: 1.05, backgroundColor: "#2563EB" }}
           >
-            Jayesh - Owner
+            Jayesh - Proud Owner
           </motion.div>
         </div>
       </motion.div>
@@ -96,7 +134,7 @@ const Index = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8, duration: 0.5 }}
-        className="max-w-6xl w-full mx-auto mt-4 md:mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        className="max-w-6xl w-full mx-auto mt-8 md:mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         {menuItems.map((item, index) => (
           <Link
