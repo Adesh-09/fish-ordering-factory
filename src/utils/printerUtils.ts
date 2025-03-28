@@ -49,6 +49,12 @@ export async function printToBluetoothPrinter(
   printer: PrinterConfig
 ): Promise<boolean> {
   try {
+    // Validate required printer properties
+    if (!printer.name || !printer.bluetoothId) {
+      console.error("Printer name and bluetoothId are required for Bluetooth printing");
+      return false;
+    }
+    
     // Connect to the device
     const device = await connectBluetoothPrinter(printer);
     if (!device) {
