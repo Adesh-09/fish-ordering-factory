@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "@/components/Header";
@@ -18,7 +17,6 @@ import {
 } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -28,19 +26,7 @@ import PasswordModal from "@/components/PasswordModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import BluetoothPrinterScanner from "@/components/BluetoothPrinterScanner";
 import { isBluetooth5Available, connectBluetoothPrinter, printToBluetoothPrinter } from "@/utils/printerUtils";
-
-const printerSchema = z.object({
-  name: z.string().min(2, "Printer name must be at least 2 characters"),
-  ipAddress: z.string().optional(),
-  bluetoothId: z.string().optional(),
-  connectionType: z.enum(["usb", "network", "bluetooth"]),
-  isDefault: z.boolean().default(false),
-  paperWidth: z.enum(["58mm", "80mm"]),
-  enabled: z.boolean().default(true),
-  location: z.enum(["kitchen", "billing", "inventory"]),
-});
-
-type PrinterConfig = z.infer<typeof printerSchema>;
+import { printerSchema, PrinterConfig } from "@/types/printerTypes";
 
 const SettingsPage: React.FC = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(true);
@@ -66,7 +52,6 @@ const SettingsPage: React.FC = () => {
     },
   });
 
-  // Check if Bluetooth is available when component mounts
   React.useEffect(() => {
     setBluetoothAvailable(isBluetooth5Available());
   }, []);
@@ -91,7 +76,6 @@ const SettingsPage: React.FC = () => {
     
     let success = false;
     
-    // Show toast indicating test is in progress
     toast({
       title: "Sending Test Print",
       description: `Attempting to send test page to ${printer.name}...`,
@@ -100,14 +84,11 @@ const SettingsPage: React.FC = () => {
     if (printer.connectionType === "bluetooth") {
       success = await printToBluetoothPrinter(testContent, printer);
     } else if (printer.connectionType === "network") {
-      // Call network printer function from printerUtils
       toast({
         title: "Network Printing",
         description: `Attempting to connect to ${printer.ipAddress}...`,
       });
-      // Implement actual network printing logic here
     } else {
-      // USB printing requires a backend service
       toast({
         title: "USB Printing",
         description: "USB printing requires a backend service to communicate with the printer.",
@@ -132,7 +113,6 @@ const SettingsPage: React.FC = () => {
     let updatedPrinters: PrinterConfig[];
 
     if (editingPrinter) {
-      // Update existing printer
       updatedPrinters = printers.map(p => 
         p.name === editingPrinter.name ? data : p
       );
@@ -141,7 +121,6 @@ const SettingsPage: React.FC = () => {
         description: `Printer "${data.name}" has been updated.`,
       });
     } else {
-      // Add new printer
       updatedPrinters = [...printers, data];
       toast({
         title: "Printer Added",
@@ -149,7 +128,6 @@ const SettingsPage: React.FC = () => {
       });
     }
 
-    // If this printer is set as default, remove default from others in the same location
     if (data.isDefault) {
       updatedPrinters = updatedPrinters.map(p => 
         p.location === data.location && p.name !== data.name

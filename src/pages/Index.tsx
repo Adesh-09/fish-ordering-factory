@@ -3,7 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import AnimatedLogo from "@/components/AnimatedLogo";
-import { Users, ChartBar, Box, Printer, Lock, Coffee, Droplet, Settings } from "lucide-react";
+import { Users, ChartBar, Box, Printer, Lock, Coffee, Settings } from "lucide-react";
 
 const Index = () => {
   const menuItems = [
@@ -68,6 +68,29 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6 flex flex-col">
       <AnimatedLogo className="my-8" />
+      
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+        className="flex justify-center mb-8"
+      >
+        <div className="relative">
+          <img 
+            src="/lovable-uploads/99f1e3e2-3656-4051-8175-94e4307dd3c7.png" 
+            alt="Jayesh - Owner" 
+            className="w-32 h-32 rounded-full object-cover border-4 border-blue-500 shadow-lg"
+          />
+          <motion.div 
+            className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white text-xs font-medium px-3 py-1 rounded-full whitespace-nowrap"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+          >
+            Jayesh - Owner
+          </motion.div>
+        </div>
+      </motion.div>
       
       <motion.div
         initial={{ opacity: 0, y: 20 }}
