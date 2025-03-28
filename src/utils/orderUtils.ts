@@ -1,5 +1,5 @@
-
 import { MenuItem, getMenuItemById } from "./menuData";
+import { printToBluetoothPrinter, printToNetworkPrinter } from "./printerUtils";
 
 export interface OrderItem {
   id: string;
@@ -32,12 +32,10 @@ export interface PrinterConfig {
   location: "kitchen" | "billing" | "inventory";
 }
 
-// Generate a unique ID
 export const generateId = (): string => {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
-// Calculate order total
 export const calculateOrderTotal = (order: Order): number => {
   return order.items.reduce((total, item) => {
     const menuItem = getMenuItemById(item.menuItemId);
@@ -48,12 +46,10 @@ export const calculateOrderTotal = (order: Order): number => {
   }, 0);
 };
 
-// Format currency
 export const formatCurrency = (amount: number): string => {
   return `₹${amount.toFixed(2)}`;
 };
 
-// Create a new order
 export const createOrder = (
   tableNumber: number,
   items: OrderItem[],
@@ -73,12 +69,10 @@ export const createOrder = (
   };
 };
 
-// Add item to order
 export const addItemToOrder = (order: Order, menuItemId: string, quantity: number = 1, notes?: string): Order => {
   const existingItemIndex = order.items.findIndex(item => item.menuItemId === menuItemId);
   
   if (existingItemIndex >= 0) {
-    // Update existing item
     const updatedItems = [...order.items];
     updatedItems[existingItemIndex] = {
       ...updatedItems[existingItemIndex],
@@ -92,7 +86,6 @@ export const addItemToOrder = (order: Order, menuItemId: string, quantity: numbe
       updatedAt: new Date(),
     };
   } else {
-    // Add new item
     return {
       ...order,
       items: [
@@ -109,7 +102,6 @@ export const addItemToOrder = (order: Order, menuItemId: string, quantity: numbe
   }
 };
 
-// Remove item from order
 export const removeItemFromOrder = (order: Order, orderItemId: string): Order => {
   return {
     ...order,
@@ -118,7 +110,6 @@ export const removeItemFromOrder = (order: Order, orderItemId: string): Order =>
   };
 };
 
-// Update item quantity
 export const updateItemQuantity = (order: Order, orderItemId: string, quantity: number): Order => {
   if (quantity <= 0) {
     return removeItemFromOrder(order, orderItemId);
@@ -135,7 +126,6 @@ export const updateItemQuantity = (order: Order, orderItemId: string, quantity: 
   };
 };
 
-// Update order status
 export const updateOrderStatus = (order: Order, status: Order['status']): Order => {
   return {
     ...order,
@@ -144,7 +134,6 @@ export const updateOrderStatus = (order: Order, status: Order['status']): Order 
   };
 };
 
-// Mark order as printed
 export const markOrderAsPrinted = (order: Order): Order => {
   return {
     ...order,
@@ -153,39 +142,39 @@ export const markOrderAsPrinted = (order: Order): Order => {
   };
 };
 
-// Get configured printers
 export const getConfiguredPrinters = (): PrinterConfig[] => {
   const savedPrinters = localStorage.getItem("restaurantPrinters");
   return savedPrinters ? JSON.parse(savedPrinters) : [];
 };
 
-// Get default printer for a location
 export const getDefaultPrinter = (location: PrinterConfig['location']): PrinterConfig | null => {
   const printers = getConfiguredPrinters();
   const defaultPrinter = printers.find(p => p.location === location && p.isDefault && p.enabled);
   return defaultPrinter || null;
 };
 
-// Get all enabled printers for a location
 export const getEnabledPrinters = (location: PrinterConfig['location']): PrinterConfig[] => {
   const printers = getConfiguredPrinters();
   return printers.filter(p => p.location === location && p.enabled);
 };
 
-// Print to a specific printer
-export const printToPrinter = (content: string, printer: PrinterConfig): boolean => {
-  console.log(`Printing to ${printer.name} (${printer.connectionType}):\n${content}`);
+export const printToPrinter = async (content: string, printer: PrinterConfig): Promise<boolean> => {
+  console.log(`Attempting to print to ${printer.name} (${printer.connectionType})`);
 
-  // In a real app, this would use device APIs to send data to the printer
-  // The implementation depends on the printer type and connection method
-  // For example, network printers might use a POST request to their IP
-  // USB/Bluetooth printers would use Web Bluetooth or USB API
-
-  // This is a simulation of a successful print
-  return true;
+  switch (printer.connectionType) {
+    case "bluetooth":
+      return await printToBluetoothPrinter(content, printer);
+    case "network":
+      return await printToNetworkPrinter(content, printer);
+    case "usb":
+      console.log("USB printing requires a system service. This is a simulation.");
+      return true; // In a real app, this would connect to a local service
+    default:
+      console.error("Unknown printer connection type");
+      return false;
+  }
 };
 
-// Generate printable order
 export const generatePrintableOrder = (order: Order): string => {
   let printContent = `
     JAYESH MACHHI KHANAVAL
@@ -223,8 +212,7 @@ export const generatePrintableOrder = (order: Order): string => {
   return printContent;
 };
 
-// Print order to kitchen
-export const printOrderToKitchen = (order: Order): boolean => {
+export const printOrderToKitchen = async (order: Order): Promise<boolean> => {
   const kitchenPrinter = getDefaultPrinter("kitchen");
   if (!kitchenPrinter) {
     console.error("No kitchen printer configured");
@@ -232,11 +220,10 @@ export const printOrderToKitchen = (order: Order): boolean => {
   }
   
   const printContent = generatePrintableOrder(order);
-  return printToPrinter(printContent, kitchenPrinter);
+  return await printToPrinter(printContent, kitchenPrinter);
 };
 
-// Print bill
-export const printBill = (order: Order): boolean => {
+export const printBill = async (order: Order): Promise<boolean> => {
   const billingPrinter = getDefaultPrinter("billing");
   if (!billingPrinter) {
     console.error("No billing printer configured");
@@ -256,11 +243,10 @@ export const printBill = (order: Order): boolean => {
     Please visit again.
   `;
   
-  return printToPrinter(billContent, billingPrinter);
+  return await printToPrinter(billContent, billingPrinter);
 };
 
-// Print inventory report
-export const printInventoryReport = (inventoryItems: any[]): boolean => {
+export const printInventoryReport = async (inventoryItems: any[]): Promise<boolean> => {
   const inventoryPrinter = getDefaultPrinter("inventory");
   if (!inventoryPrinter) {
     console.error("No inventory printer configured");
@@ -290,11 +276,10 @@ export const printInventoryReport = (inventoryItems: any[]): boolean => {
     ------------------------------
   `;
   
-  return printToPrinter(reportContent, inventoryPrinter);
+  return await printToPrinter(reportContent, inventoryPrinter);
 };
 
-// Print attendance report
-export const printAttendanceReport = (staff: any[], date: Date): boolean => {
+export const printAttendanceReport = async (staff: any[], date: Date): Promise<boolean> => {
   const inventoryPrinter = getDefaultPrinter("inventory") || getDefaultPrinter("billing");
   if (!inventoryPrinter) {
     console.error("No printer configured for reports");
@@ -333,15 +318,13 @@ export const printAttendanceReport = (staff: any[], date: Date): boolean => {
     ------------------------------
   `;
   
-  return printToPrinter(reportContent, inventoryPrinter);
+  return await printToPrinter(reportContent, inventoryPrinter);
 };
 
-// Format time
 export const formatOrderTime = (date: Date): string => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-// Calculate time elapsed since order creation
 export const getTimeElapsed = (createdAt: Date): string => {
   const now = new Date();
   const diffMs = now.getTime() - createdAt.getTime();
