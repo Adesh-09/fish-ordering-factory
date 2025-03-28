@@ -29,6 +29,7 @@ const BluetoothPrinterScanner: React.FC<BluetoothPrinterScannerProps> = ({
         });
       }
     } catch (error) {
+      console.error("Error scanning for Bluetooth printers:", error);
       toast({
         title: "Bluetooth Error",
         description: error instanceof Error ? error.message : "Failed to scan for Bluetooth printers",
