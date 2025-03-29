@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "@/components/Header";
@@ -82,7 +83,8 @@ const SettingsPage: React.FC = () => {
     });
     
     if (printer.connectionType === "bluetooth") {
-      success = await printToBluetoothPrinter(testContent, printer);
+      const result = await printToBluetoothPrinter(testContent, printer);
+      success = result.success;
     } else if (printer.connectionType === "network") {
       toast({
         title: "Network Printing",

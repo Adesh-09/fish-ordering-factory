@@ -182,9 +182,11 @@ export const printToPrinter = async (content: string, printer: PrinterConfig): P
 
   switch (printer.connectionType) {
     case "bluetooth":
-      return await printToBluetoothPrinter(content, printer);
+      const bluetoothResult = await printToBluetoothPrinter(content, printer);
+      return bluetoothResult.success;
     case "network":
-      return await printToNetworkPrinter(content, printer);
+      const networkResult = await printToNetworkPrinter(content, printer);
+      return networkResult.success;
     case "usb":
       console.log("USB printing requires a system service. This is a simulation.");
       return true; // In a real app, this would connect to a local service

@@ -9,6 +9,7 @@ import {
   updateInventoryFromOrder,
   saveOrderAnalytics,
   generatePrintableOrder,
+  formatCurrency
 } from "@/utils/orderUtils";
 import { printDocument } from "@/utils/printerUtils";
 import { toast } from "@/components/ui/use-toast";
