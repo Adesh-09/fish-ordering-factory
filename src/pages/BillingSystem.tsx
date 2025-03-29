@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useOrders } from "@/hooks/useOrders";
@@ -200,7 +199,9 @@ const BillingSystemContent = () => {
                         <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 font-medium">
                           Table {order.tableNumber}
                         </span>
-                        <h3 className="text-lg font-medium mt-2 mb-1">Order #{order.id.slice(0, 8)}</h3>
+                        <h3 className="text-lg font-medium mt-2 mb-1">
+                          Order #{order.orderNumber || order.id.slice(0, 8)}
+                        </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           {" • "}
@@ -284,7 +285,9 @@ const BillingSystemContent = () => {
                         <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 font-medium">
                           Table {order.tableNumber}
                         </span>
-                        <h3 className="text-lg font-medium mt-2 mb-1">Order #{order.id.slice(0, 8)}</h3>
+                        <h3 className="text-lg font-medium mt-2 mb-1">
+                          Order #{order.orderNumber || order.id.slice(0, 8)}
+                        </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           {" • "}
@@ -344,7 +347,6 @@ const BillingSystemContent = () => {
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
             onClick={(e) => {
-              // Close modal when clicking backdrop
               if (e.target === e.currentTarget) {
                 setSelectedOrder(null);
               }
@@ -410,7 +412,6 @@ const BillingSystemContent = () => {
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
             onClick={(e) => {
-              // Close modal when clicking backdrop
               if (e.target === e.currentTarget) {
                 setShowBillPreview(false);
               }

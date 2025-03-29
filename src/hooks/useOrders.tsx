@@ -64,7 +64,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setOrders(prevOrders => [order, ...prevOrders]);
     toast({
       title: "Order Created",
-      description: `Order #${order.id.slice(0, 8)} ${order.isTakeAway ? '(Take Away)' : `for Table ${order.tableNumber}`} has been created.`,
+      description: `Order #${order.orderNumber} ${order.isTakeAway ? '(Take Away)' : `for Table ${order.tableNumber}`} has been created.`,
     });
   };
 
@@ -94,7 +94,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         
         toast({
           title: "Order Sent to Printer",
-          description: `Order #${orderId.slice(0, 8)} has been sent to the kitchen printer.`,
+          description: `Order #${orderToPrint.orderNumber} has been sent to the kitchen printer.`,
         });
         
         return true;
@@ -127,6 +127,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 JAYESH MACHHI KHANAVAL
 ------------------------------
 BILL RECEIPT
+Order #: ${orderToPrint.orderNumber}
 Invoice #: ${orderId.slice(0, 8)}
 Table: ${orderToPrint.tableNumber}
 Date: ${new Date(orderToPrint.createdAt).toLocaleDateString()}
@@ -162,7 +163,7 @@ Please visit again.
       if (result.success) {
         toast({
           title: "Bill Printed",
-          description: `Bill for Table ${orderToPrint.tableNumber} has been sent to the printer.`,
+          description: `Bill for Order #${orderToPrint.orderNumber} has been sent to the printer.`,
         });
         
         return true;
@@ -203,7 +204,7 @@ Please visit again.
     
     toast({
       title: "Status Updated",
-      description: `Order #${orderId.slice(0, 8)} is now ${status}.`,
+      description: `Order #${orderToUpdate?.orderNumber || orderId.slice(0, 8)} is now ${status}.`,
     });
   };
 

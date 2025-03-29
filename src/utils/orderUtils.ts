@@ -1,4 +1,3 @@
-
 import { MenuItem, getMenuItemById } from "./menuData";
 import { printToBluetoothPrinter, printToNetworkPrinter } from "./printerUtils";
 import { InventoryItem, updateInventoryQuantity } from "./inventoryUtils";
@@ -14,6 +13,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  orderNumber: number;
   tableNumber: number;
   items: OrderItem[];
   status: "pending" | "preparing" | "ready" | "served" | "completed" | "cancelled";
@@ -46,8 +46,40 @@ export interface OrderAnalytics {
   dineInOrders: number;
 }
 
+export interface OrderSequence {
+  currentNumber: number;
+  date: string;
+}
+
 export const generateId = (): string => {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+};
+
+export const getNextOrderNumber = (): number => {
+  const today = new Date();
+  const dateKey = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  
+  const savedSequence = localStorage.getItem("orderSequence");
+  let sequence: OrderSequence = { currentNumber: 0, date: dateKey };
+  
+  if (savedSequence) {
+    const parsedSequence = JSON.parse(savedSequence) as OrderSequence;
+    
+    if (parsedSequence.date !== dateKey) {
+      sequence = { currentNumber: 1, date: dateKey };
+    } else {
+      sequence = { 
+        currentNumber: parsedSequence.currentNumber + 1,
+        date: dateKey
+      };
+    }
+  } else {
+    sequence = { currentNumber: 1, date: dateKey };
+  }
+  
+  localStorage.setItem("orderSequence", JSON.stringify(sequence));
+  
+  return sequence.currentNumber;
 };
 
 export const calculateOrderTotal = (order: Order): number => {
@@ -73,6 +105,7 @@ export const createOrder = (
 ): Order => {
   return {
     id: generateId(),
+    orderNumber: getNextOrderNumber(),
     tableNumber,
     items,
     status: "pending",
@@ -200,6 +233,7 @@ export const generatePrintableOrder = (order: Order): string => {
   let printContent = `
     JAYESH MACHHI KHANAVAL
     ------------------------------
+    Order #: ${order.orderNumber}
     Order ID: ${order.id.slice(0, 8)}
     Table: ${order.tableNumber}
     Time: ${order.createdAt.toLocaleTimeString()}
@@ -253,10 +287,9 @@ export const printBill = async (order: Order): Promise<boolean> => {
     return false;
   }
   
-  // Generate a bill format that includes taxes, etc.
   let billContent = generatePrintableOrder(order);
   const total = calculateOrderTotal(order);
-  const gst = total * 0.05; // Assuming 5% GST
+  const gst = total * 0.05;
   
   billContent += `
     GST (5%): ${formatCurrency(gst)}
@@ -365,7 +398,6 @@ export const getTimeElapsed = (createdAt: Date): string => {
   }
 };
 
-// Update inventory when order is completed
 export const updateInventoryFromOrder = (order: Order, inventoryItems: InventoryItem[]): InventoryItem[] => {
   if (order.status !== "completed") {
     return inventoryItems;
@@ -377,15 +409,12 @@ export const updateInventoryFromOrder = (order: Order, inventoryItems: Inventory
     const menuItem = getMenuItemById(orderItem.menuItemId);
     if (!menuItem || !menuItem.inventoryItemId) return;
     
-    // Find associated inventory item
     const inventoryItemIndex = updatedInventory.findIndex(item => item.id === menuItem.inventoryItemId);
     if (inventoryItemIndex === -1) return;
     
-    // Calculate new quantity
     const currentQuantity = updatedInventory[inventoryItemIndex].quantity;
     const newQuantity = Math.max(0, currentQuantity - orderItem.quantity);
     
-    // Update inventory item
     updatedInventory[inventoryItemIndex] = {
       ...updatedInventory[inventoryItemIndex],
       quantity: newQuantity,
@@ -397,7 +426,6 @@ export const updateInventoryFromOrder = (order: Order, inventoryItems: Inventory
   return updatedInventory;
 };
 
-// Store analytics data for the month
 export const saveOrderAnalytics = (order: Order): void => {
   if (order.status !== "completed") return;
   
@@ -405,25 +433,20 @@ export const saveOrderAnalytics = (order: Order): void => {
   const monthKey = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
   const analyticsKey = `analytics-${monthKey}`;
   
-  // Load existing analytics
   const existingData = localStorage.getItem(analyticsKey);
   let monthlyAnalytics: OrderAnalytics[] = existingData ? JSON.parse(existingData) : [];
   
-  // Format date for grouping
   const orderDate = new Date(order.createdAt);
   const dateKey = `${orderDate.getFullYear()}-${(orderDate.getMonth() + 1).toString().padStart(2, '0')}-${orderDate.getDate().toString().padStart(2, '0')}`;
   
-  // Find existing entry for this date
   const existingEntryIndex = monthlyAnalytics.findIndex(entry => entry.date === dateKey);
   const orderTotal = calculateOrderTotal(order);
   
   if (existingEntryIndex >= 0) {
-    // Update existing entry
     const existingEntry = monthlyAnalytics[existingEntryIndex];
     const newTotalOrders = existingEntry.totalOrders + 1;
     const newTotalSales = existingEntry.totalSales + orderTotal;
     
-    // Update items sold counts
     const updatedItemsSold = { ...existingEntry.itemsSold };
     order.items.forEach(item => {
       const menuItem = getMenuItemById(item.menuItemId);
@@ -443,7 +466,6 @@ export const saveOrderAnalytics = (order: Order): void => {
       dineInOrders: existingEntry.dineInOrders + (order.isTakeAway ? 0 : 1)
     };
   } else {
-    // Create new entry for this date
     const itemsSold: Record<string, number> = {};
     order.items.forEach(item => {
       const menuItem = getMenuItemById(item.menuItemId);
@@ -463,11 +485,9 @@ export const saveOrderAnalytics = (order: Order): void => {
     });
   }
   
-  // Save analytics data
   localStorage.setItem(analyticsKey, JSON.stringify(monthlyAnalytics));
 };
 
-// Print monthly reports
 export const printMonthlyReport = async (month: Date): Promise<boolean> => {
   const monthKey = `${month.getFullYear()}-${(month.getMonth() + 1).toString().padStart(2, '0')}`;
   const analyticsKey = `analytics-${monthKey}`;
