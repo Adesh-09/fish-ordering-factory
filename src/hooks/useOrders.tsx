@@ -13,6 +13,7 @@ import {
 import { printDocument } from "@/utils/printerUtils";
 import { toast } from "@/components/ui/use-toast";
 import { getInventoryItems, saveInventoryItems } from "@/utils/inventoryUtils";
+import { getMenuItemById } from "@/utils/menuData";
 
 interface OrdersContextType {
   orders: Order[];
@@ -37,7 +38,6 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
 
-  // Load orders from localStorage on initial render
   useEffect(() => {
     const savedOrders = localStorage.getItem("restaurantOrders");
     if (savedOrders) {
@@ -54,7 +54,6 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, []);
 
-  // Save orders to localStorage whenever they change
   useEffect(() => {
     if (orders.length > 0) {
       localStorage.setItem("restaurantOrders", JSON.stringify(orders));
@@ -76,7 +75,6 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       )
     );
     
-    // If the active order is being updated, update it as well
     if (activeOrder && activeOrder.id === updatedOrder.id) {
       setActiveOrder(updatedOrder);
     }
@@ -87,14 +85,10 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!orderToPrint) return false;
     
     try {
-      // Generate printable content
       const orderContent = generatePrintableOrder(orderToPrint);
-      
-      // Print to kitchen printer
       const result = await printDocument(orderContent, "kitchen");
       
       if (result.success) {
-        // Mark order as printed
         const printedOrder = markOrderAsPrinted(orderToPrint);
         updateOrder(printedOrder);
         
@@ -125,12 +119,10 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!orderToPrint) return false;
     
     try {
-      // Calculate totals
       const subtotal = calculateOrderTotal(orderToPrint);
-      const gst = subtotal * 0.05; // 5% GST
+      const gst = subtotal * 0.05;
       const total = subtotal + gst;
       
-      // Generate bill content
       let billContent = `
 JAYESH MACHHI KHANAVAL
 ------------------------------
@@ -145,7 +137,6 @@ ITEM                QTY   AMOUNT
 ------------------------------
 `;
 
-      // Add items
       orderToPrint.items.forEach(item => {
         const menuItem = getMenuItemById(item.menuItemId);
         if (menuItem) {
@@ -166,7 +157,6 @@ Thank you for dining with us!
 Please visit again.
 `;
 
-      // Print to billing printer
       const result = await printDocument(billContent, "billing");
       
       if (result.success) {
@@ -199,16 +189,10 @@ Please visit again.
     const updatedOrder = updateOrderStatus(orderToUpdate, status);
     updateOrder(updatedOrder);
     
-    // If order is marked as completed, update inventory
     if (status === "completed" && orderToUpdate.status !== "completed") {
-      // Get current inventory
       const inventoryItems = getInventoryItems();
-      // Update inventory based on order items
       const updatedInventory = updateInventoryFromOrder(updatedOrder, inventoryItems);
-      // Save updated inventory
       saveInventoryItems(updatedInventory);
-      
-      // Save order analytics
       saveOrderAnalytics(updatedOrder);
       
       toast({
@@ -227,7 +211,6 @@ Please visit again.
     return orders.find(order => order.id === orderId);
   };
   
-  // Remove orders before a specific date (for billing statement removal)
   const removeOrdersBeforeDate = (date: Date) => {
     const filteredOrders = orders.filter(order => 
       new Date(order.createdAt) >= date
@@ -242,7 +225,6 @@ Please visit again.
     });
   };
 
-  // Filtered orders by status
   const pendingOrders = orders.filter(order => order.status === "pending");
   const preparingOrders = orders.filter(order => order.status === "preparing");
   const readyOrders = orders.filter(order => order.status === "ready");
