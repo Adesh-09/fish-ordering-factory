@@ -1,10 +1,10 @@
-
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useOrders } from "@/hooks/useOrders";
 import OrderSummary from "@/components/OrderSummary";
 import BillPreview from "@/components/BillPreview";
 import Header from "@/components/Header";
+import PrintButton from "@/components/PrintButton";
 import { formatCurrency, Order } from "@/utils/orderUtils";
 import { toast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -21,7 +21,6 @@ const BillingSystemContent = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteMonth, setDeleteMonth] = useState<Date>(new Date());
   
-  // Filter orders - exclude cancelled orders and filter by search query if present
   const filteredOrders = orders
     .filter((order) => order.status !== "cancelled")
     .filter((order) => {
@@ -34,7 +33,6 @@ const BillingSystemContent = () => {
       return orderIdMatch || tableMatch || customerMatch;
     });
   
-  // Group orders by status for display
   const pendingOrders = filteredOrders.filter((order) => order.status === "pending");
   const preparingOrders = filteredOrders.filter((order) => order.status === "preparing");
   const readyOrders = filteredOrders.filter((order) => order.status === "ready" || order.status === "served");
@@ -47,26 +45,20 @@ const BillingSystemContent = () => {
   
   const handlePrintBill = () => {
     if (selectedOrder) {
-      // In a real app, this would trigger a bill printing functionality
       toast({
         title: "Bill Printed",
         description: `Bill for Table ${selectedOrder.tableNumber} has been sent to the printer.`,
       });
       
-      // Mark the order as completed
       changeOrderStatus(selectedOrder.id, "completed");
       setShowBillPreview(false);
     }
   };
   
   const handleDeleteOrdersForMonth = () => {
-    // Create a date for the first day of the selected month
     const startOfMonth = new Date(deleteMonth.getFullYear(), deleteMonth.getMonth(), 1);
-    
-    // Create a date for the first day of the next month
     const endOfMonth = new Date(deleteMonth.getFullYear(), deleteMonth.getMonth() + 1, 0);
     
-    // Filter orders to remove those within the selected month
     removeOrdersBeforeDate(endOfMonth);
     
     setShowDeleteConfirm(false);
@@ -162,7 +154,6 @@ const BillingSystemContent = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Active Orders */}
           <div>
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
               Active Orders
@@ -205,7 +196,7 @@ const BillingSystemContent = () => {
                         <p className="text-lg font-bold mt-2 text-blue-600 dark:text-blue-400">
                           {formatCurrency(order.items.reduce((total, item) => {
                             const menuItem = order.items.find(i => i.id === item.id);
-                            return total + (menuItem ? item.quantity * 0 : 0); // This would use actual prices in a real app
+                            return total + (menuItem ? item.quantity * 0 : 0);
                           }, 0))}
                         </p>
                       </div>
@@ -233,7 +224,6 @@ const BillingSystemContent = () => {
             )}
           </div>
           
-          {/* Completed Orders */}
           <div>
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
               Completed Orders
@@ -270,7 +260,7 @@ const BillingSystemContent = () => {
                         <p className="text-lg font-bold mt-2 text-blue-600 dark:text-blue-400">
                           {formatCurrency(order.items.reduce((total, item) => {
                             const menuItem = order.items.find(i => i.id === item.id);
-                            return total + (menuItem ? item.quantity * 0 : 0); // This would use actual prices in a real app
+                            return total + (menuItem ? item.quantity * 0 : 0);
                           }, 0))}
                         </p>
                       </div>
@@ -285,7 +275,9 @@ const BillingSystemContent = () => {
                       </button>
                       
                       <button
-                        onClick={() => handleGenerateBill(order)}
+                        onClick={() => {
+                          setShowBillPreview(true);
+                        }}
                         className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-400 text-white hover:bg-gray-500 transition-colors flex items-center"
                       >
                         <Printer className="h-4 w-4 mr-1" />
@@ -300,7 +292,6 @@ const BillingSystemContent = () => {
         </div>
       </main>
       
-      {/* Order Details Modal */}
       <AnimatePresence>
         {selectedOrder && !showBillPreview && (
           <motion.div
@@ -356,7 +347,6 @@ const BillingSystemContent = () => {
         )}
       </AnimatePresence>
       
-      {/* Bill Preview Modal */}
       <AnimatePresence>
         {selectedOrder && showBillPreview && (
           <motion.div
@@ -388,11 +378,12 @@ const BillingSystemContent = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      <PrintButton />
     </div>
   );
 };
 
-// Wrap with OrdersProvider
 const BillingSystem = () => (
   <BillingSystemContent />
 );

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOrders } from "@/hooks/useOrders";
@@ -15,6 +14,7 @@ import MenuCard from "@/components/MenuCard";
 import OrderItemComponent from "@/components/OrderItem";
 import OrderSummary from "@/components/OrderSummary";
 import Header from "@/components/Header";
+import PrintButton from "@/components/PrintButton";
 import { toast } from "@/components/ui/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -338,6 +338,9 @@ const OrderPage = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Add PrintButton for quick access */}
+      <PrintButton />
     </div>
   );
 };

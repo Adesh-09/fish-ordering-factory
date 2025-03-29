@@ -3,6 +3,9 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Order, calculateOrderTotal, formatCurrency } from "@/utils/orderUtils";
 import { getMenuItemById } from "@/utils/menuData";
+import { Printer, Share } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { printDocument } from "@/utils/printerUtils";
 
 interface BillPreviewProps {
   order: Order;
@@ -13,6 +16,52 @@ const BillPreview: React.FC<BillPreviewProps> = ({ order, onPrint }) => {
   const total = calculateOrderTotal(order);
   const gst = total * 0.05; // Assuming 5% GST
   const grandTotal = total + gst;
+  
+  const handleDirectPrint = async () => {
+    // Generate printable content
+    let billContent = `
+JAYESH MACHHI KHANAVAL
+Invoice #: ${order.id.slice(0, 8)}
+Date: ${new Date(order.createdAt).toLocaleDateString()}
+Time: ${new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+Table: ${order.tableNumber}
+${order.isTakeAway ? "*** TAKE AWAY ***" : ""}
+===============================
+ITEM                QTY   AMOUNT
+-------------------------------
+`;
+
+    // Add items
+    order.items.forEach(item => {
+      const menuItem = getMenuItemById(item.menuItemId);
+      if (menuItem) {
+        const itemTotal = menuItem.price * item.quantity;
+        const itemName = menuItem.nameEn.slice(0, 18).padEnd(18);
+        billContent += `${itemName} ${item.quantity.toString().padStart(3)}   ${formatCurrency(itemTotal)}\n`;
+        
+        if (item.notes) {
+          billContent += `  Note: ${item.notes}\n`;
+        }
+      }
+    });
+
+    billContent += `
+-------------------------------
+Subtotal:           ${formatCurrency(total)}
+GST (5%):           ${formatCurrency(gst)}
+===============================
+TOTAL:              ${formatCurrency(grandTotal)}
+
+Thank you for dining with us!
+Please visit again.
+`;
+
+    // Send to printer
+    await printDocument(billContent, "billing");
+    
+    // Execute callback to update UI/state
+    onPrint();
+  };
   
   return (
     <motion.div
@@ -38,6 +87,11 @@ const BillPreview: React.FC<BillPreviewProps> = ({ order, onPrint }) => {
           <p className="text-sm font-medium mt-2">
             Table: {order.tableNumber}
           </p>
+          {order.isTakeAway && (
+            <p className="text-sm font-medium mt-1 bg-amber-100 text-amber-800 inline-block px-2 py-1 rounded">
+              Take Away
+            </p>
+          )}
         </div>
         
         <div className="mb-4">
@@ -111,21 +165,19 @@ const BillPreview: React.FC<BillPreviewProps> = ({ order, onPrint }) => {
           </div>
         </div>
         
-        <div className="mt-6">
-          <button
-            onClick={onPrint}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center"
+        <div className="mt-6 space-y-3">
+          <Button
+            onClick={handleDirectPrint}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
           >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              className="h-5 w-5 mr-2" 
-              viewBox="0 0 20 20" 
-              fill="currentColor"
-            >
-              <path fillRule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clipRule="evenodd" />
-            </svg>
+            <Printer className="h-5 w-5 mr-2" />
             Print Bill
-          </button>
+          </Button>
+          
+          <Button variant="outline" className="w-full">
+            <Share className="h-4 w-4 mr-2" />
+            Share Bill
+          </Button>
         </div>
         
         <div className="text-center text-xs text-gray-500 dark:text-gray-400 mt-6">

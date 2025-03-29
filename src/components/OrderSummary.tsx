@@ -4,6 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Order, calculateOrderTotal, formatCurrency } from "@/utils/orderUtils";
 import { getMenuItemById } from "@/utils/menuData";
 import { cn } from "@/lib/utils";
+import { Printer, ChevronDown, ChevronUp, Receipt } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { printDocument } from "@/utils/printerUtils";
+import { toast } from "@/components/ui/use-toast";
 
 interface OrderSummaryProps {
   order: Order;
@@ -21,6 +25,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   showActions = true,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const total = calculateOrderTotal(order);
   
   const statusColors: Record<Order["status"], string> = {
@@ -30,6 +35,62 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
     served: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
     completed: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
     cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  };
+  
+  const handleDirectPrint = async () => {
+    try {
+      setIsPrinting(true);
+      
+      // Generate order content for kitchen
+      let orderContent = `
+JAYESH MACHHI KHANAVAL
+------------------------------
+ORDER TICKET
+Table: ${order.tableNumber}
+Time: ${new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+Date: ${new Date(order.createdAt).toLocaleDateString()}
+${order.isTakeAway ? "*** TAKE AWAY ***" : ""}
+------------------------------
+`;
+
+      order.items.forEach(item => {
+        const menuItem = getMenuItemById(item.menuItemId);
+        if (menuItem) {
+          orderContent += `
+${item.quantity}x ${menuItem.nameEn}
+${item.isTakeAway ? "[TAKE AWAY]" : ""}
+${item.notes ? `  Note: ${item.notes}` : ''}
+`;
+        }
+      });
+
+      orderContent += `
+------------------------------
+Total Items: ${order.items.reduce((sum, item) => sum + item.quantity, 0)}
+${order.notes ? `\nNotes: ${order.notes}` : ''}
+------------------------------
+`;
+
+      // Print to kitchen printer
+      const printResult = await printDocument(orderContent, "kitchen");
+      
+      if (printResult.success) {
+        toast({
+          title: "Print Successful",
+          description: "Order has been sent to the kitchen printer.",
+        });
+        onPrint(); // Notify parent component
+      }
+    } catch (error) {
+      console.error("Error printing order:", error);
+      toast({
+        title: "Print Failed",
+        description: error instanceof Error ? error.message : "Failed to print order",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPrinting(false);
+    }
   };
   
   return (
@@ -43,7 +104,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         <div className="flex items-center justify-between mb-4">
           <div>
             <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 font-medium">
-              Table {order.tableNumber}
+              {order.isTakeAway ? "Take Away" : `Table ${order.tableNumber}`}
             </span>
             <h3 className="text-lg font-bold mt-2 text-gray-900 dark:text-white">
               Order #{order.id.slice(0, 8)}
@@ -77,17 +138,11 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {order.items.length} item{order.items.length !== 1 ? 's' : ''}
           </span>
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            className={cn("h-5 w-5 text-gray-500 transition-transform", 
-              isExpanded ? "transform rotate-180" : ""
-            )} 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          {isExpanded ? (
+            <ChevronUp className="h-5 w-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-gray-500" />
+          )}
         </div>
         
         <AnimatePresence>
@@ -137,69 +192,88 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         {showActions && (
           <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
             {order.status === "pending" && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-                onClick={onPrint}
+              <Button
+                variant="default"
+                className="w-full py-2 bg-blue-600 hover:bg-blue-700"
+                onClick={handleDirectPrint}
+                disabled={isPrinting}
               >
-                Print Order
-              </motion.button>
+                <Printer className="h-4 w-4 mr-2" />
+                {isPrinting ? "Printing..." : "Print Order"}
+              </Button>
+            )}
+            
+            {(order.status === "ready" || order.status === "served") && (
+              <Button
+                variant="default"
+                className="w-full py-2 bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  // Generate and print bill
+                  const billContent = `
+JAYESH MACHHI KHANAVAL
+Invoice #: ${order.id.slice(0, 8)}
+Date: ${new Date(order.createdAt).toLocaleDateString()}
+Time: ${new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+Table: ${order.tableNumber}
+${order.isTakeAway ? "*** TAKE AWAY ***" : ""}
+===============================
+`;
+                  printDocument(billContent, "billing");
+                }}
+              >
+                <Receipt className="h-4 w-4 mr-2" />
+                Print Bill
+              </Button>
             )}
             
             {order.status === "pending" && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-2 px-4 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg transition-colors"
+              <Button
+                variant="secondary"
+                className="w-full py-2"
                 onClick={() => onChangeStatus("preparing")}
               >
                 Start Preparing
-              </motion.button>
+              </Button>
             )}
             
             {order.status === "preparing" && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+              <Button
+                variant="default"
+                className="w-full py-2 bg-green-600 hover:bg-green-700"
                 onClick={() => onChangeStatus("ready")}
               >
                 Mark Ready
-              </motion.button>
+              </Button>
             )}
             
             {order.status === "ready" && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
+              <Button
+                variant="default"
+                className="w-full py-2 bg-purple-600 hover:bg-purple-700"
                 onClick={() => onChangeStatus("served")}
               >
                 Mark Served
-              </motion.button>
+              </Button>
             )}
             
             {order.status === "served" && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-2 px-4 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors"
+              <Button
+                variant="default"
+                className="w-full py-2 bg-gray-600 hover:bg-gray-700"
                 onClick={() => onChangeStatus("completed")}
               >
                 Complete Order
-              </motion.button>
+              </Button>
             )}
             
             {onClose && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 font-medium rounded-lg transition-colors"
+              <Button
+                variant="outline"
+                className="w-full py-2"
                 onClick={onClose}
               >
                 Close
-              </motion.button>
+              </Button>
             )}
           </div>
         )}

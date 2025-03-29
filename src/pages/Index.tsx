@@ -1,8 +1,8 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import AnimatedLogo from "@/components/AnimatedLogo";
+import PrintButton from "@/components/PrintButton";
 import { Users, ChartBar, Box, Printer, Lock, Coffee, Settings } from "lucide-react";
 
 const Index = () => {
@@ -182,6 +182,20 @@ const Index = () => {
       >
         <p>© {new Date().getFullYear()} जयेश मच्छी खानावल - Jayesh Machhi Khanaval</p>
       </motion.footer>
+      
+      <PrintButton 
+        printContent={`
+JAYESH MACHHI KHANAVAL
+-------------------------------
+TEST PRINT
+${new Date().toLocaleString()}
+-------------------------------
+This is a test print.
+If you can read this, your printer is working!
+-------------------------------
+Thank you for using our services!
+`}
+      />
     </div>
   );
 };

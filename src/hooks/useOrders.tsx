@@ -7,8 +7,10 @@ import {
   updateOrderStatus, 
   markOrderAsPrinted,
   updateInventoryFromOrder,
-  saveOrderAnalytics 
+  saveOrderAnalytics,
+  generatePrintableOrder,
 } from "@/utils/orderUtils";
+import { printDocument } from "@/utils/printerUtils";
 import { toast } from "@/components/ui/use-toast";
 import { getInventoryItems, saveInventoryItems } from "@/utils/inventoryUtils";
 
@@ -18,7 +20,8 @@ interface OrdersContextType {
   setActiveOrder: (order: Order | null) => void;
   addOrder: (order: Order) => void;
   updateOrder: (updatedOrder: Order) => void;
-  printOrder: (orderId: string) => void;
+  printOrder: (orderId: string) => Promise<boolean>;
+  printBill: (orderId: string) => Promise<boolean>;
   changeOrderStatus: (orderId: string, status: Order["status"]) => void;
   getOrderById: (orderId: string) => Order | undefined;
   pendingOrders: Order[];
@@ -79,19 +82,113 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const printOrder = (orderId: string) => {
+  const printOrder = async (orderId: string): Promise<boolean> => {
     const orderToPrint = orders.find(o => o.id === orderId);
-    if (!orderToPrint) return;
+    if (!orderToPrint) return false;
     
-    // In a real app, this would trigger printing functionality
-    // For now, we'll just mark it as printed
-    const printedOrder = markOrderAsPrinted(orderToPrint);
-    updateOrder(printedOrder);
+    try {
+      // Generate printable content
+      const orderContent = generatePrintableOrder(orderToPrint);
+      
+      // Print to kitchen printer
+      const result = await printDocument(orderContent, "kitchen");
+      
+      if (result.success) {
+        // Mark order as printed
+        const printedOrder = markOrderAsPrinted(orderToPrint);
+        updateOrder(printedOrder);
+        
+        toast({
+          title: "Order Sent to Printer",
+          description: `Order #${orderId.slice(0, 8)} has been sent to the kitchen printer.`,
+        });
+        
+        return true;
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      console.error("Error printing order:", error);
+      
+      toast({
+        title: "Print Failed",
+        description: error instanceof Error ? error.message : "Failed to print order",
+        variant: "destructive",
+      });
+      
+      return false;
+    }
+  };
+
+  const printBill = async (orderId: string): Promise<boolean> => {
+    const orderToPrint = orders.find(o => o.id === orderId);
+    if (!orderToPrint) return false;
     
-    toast({
-      title: "Order Sent to Printer",
-      description: `Order #${orderId.slice(0, 8)} has been sent to the kitchen printer.`,
-    });
+    try {
+      // Calculate totals
+      const subtotal = calculateOrderTotal(orderToPrint);
+      const gst = subtotal * 0.05; // 5% GST
+      const total = subtotal + gst;
+      
+      // Generate bill content
+      let billContent = `
+JAYESH MACHHI KHANAVAL
+------------------------------
+BILL RECEIPT
+Invoice #: ${orderId.slice(0, 8)}
+Table: ${orderToPrint.tableNumber}
+Date: ${new Date(orderToPrint.createdAt).toLocaleDateString()}
+Time: ${new Date(orderToPrint.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+${orderToPrint.isTakeAway ? "*** TAKE AWAY ***" : ""}
+------------------------------
+ITEM                QTY   AMOUNT
+------------------------------
+`;
+
+      // Add items
+      orderToPrint.items.forEach(item => {
+        const menuItem = orderToPrint.items.find(i => i.id === item.id);
+        if (menuItem) {
+          const itemName = `${item.menuItemId}`.slice(0, 16).padEnd(16);
+          billContent += `${itemName} ${item.quantity.toString().padStart(3)}   ${formatCurrency(0)}\n`;
+        }
+      });
+
+      billContent += `
+------------------------------
+Subtotal:           ${formatCurrency(subtotal)}
+GST (5%):           ${formatCurrency(gst)}
+------------------------------
+TOTAL:              ${formatCurrency(total)}
+
+Thank you for dining with us!
+Please visit again.
+`;
+
+      // Print to billing printer
+      const result = await printDocument(billContent, "billing");
+      
+      if (result.success) {
+        toast({
+          title: "Bill Printed",
+          description: `Bill for Table ${orderToPrint.tableNumber} has been sent to the printer.`,
+        });
+        
+        return true;
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      console.error("Error printing bill:", error);
+      
+      toast({
+        title: "Print Failed",
+        description: error instanceof Error ? error.message : "Failed to print bill",
+        variant: "destructive",
+      });
+      
+      return false;
+    }
   };
 
   const changeOrderStatus = (orderId: string, status: Order["status"]) => {
@@ -161,6 +258,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addOrder,
         updateOrder,
         printOrder,
+        printBill,
         changeOrderStatus,
         getOrderById,
         pendingOrders,
