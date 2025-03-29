@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useOrders } from "@/hooks/useOrders";
@@ -6,14 +7,15 @@ import BillPreview from "@/components/BillPreview";
 import Header from "@/components/Header";
 import PrintButton from "@/components/PrintButton";
 import { formatCurrency, Order } from "@/utils/orderUtils";
+import { getMenuItemById } from "@/utils/menuData";
 import { toast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CalendarX, Printer, Lock } from "lucide-react";
+import { CalendarX, Printer, Lock, Search, ClipboardList } from "lucide-react";
 import PasswordModal from "@/components/PasswordModal";
 
 const BillingSystemContent = () => {
-  const { orders, printOrder, changeOrderStatus, removeOrdersBeforeDate } = useOrders();
+  const { orders, printOrder, printBill, changeOrderStatus, removeOrdersBeforeDate } = useOrders();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showBillPreview, setShowBillPreview] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,15 +45,14 @@ const BillingSystemContent = () => {
     setShowBillPreview(true);
   };
   
-  const handlePrintBill = () => {
+  const handlePrintBill = async () => {
     if (selectedOrder) {
-      toast({
-        title: "Bill Printed",
-        description: `Bill for Table ${selectedOrder.tableNumber} has been sent to the printer.`,
-      });
+      const success = await printBill(selectedOrder.id);
       
-      changeOrderStatus(selectedOrder.id, "completed");
-      setShowBillPreview(false);
+      if (success) {
+        changeOrderStatus(selectedOrder.id, "completed");
+        setShowBillPreview(false);
+      }
     }
   };
   
@@ -83,7 +84,12 @@ const BillingSystemContent = () => {
       <Header />
       
       <main className="pt-20 pb-10 px-4 max-w-7xl mx-auto">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-6">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-6 hover:shadow-md transition-shadow"
+        >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Billing System</h1>
@@ -93,20 +99,25 @@ const BillingSystemContent = () => {
             </div>
             
             <div className="mt-4 md:mt-0 flex space-x-2">
-              <input
-                type="text"
-                placeholder="Search by order ID, table, or customer..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full md:w-auto px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search orders..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full md:w-auto pl-9 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                />
+              </div>
               
               <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
                 <DialogTrigger asChild>
-                  <Button variant="destructive">
-                    <CalendarX className="h-4 w-4 mr-2" />
-                    Remove Bills
-                  </Button>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button variant="destructive">
+                      <CalendarX className="h-4 w-4 mr-2" />
+                      Remove Bills
+                    </Button>
+                  </motion.div>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
@@ -121,7 +132,7 @@ const BillingSystemContent = () => {
                       <label className="block text-sm font-medium mb-2">Select Month</label>
                       <input
                         type="month"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                         value={`${deleteMonth.getFullYear()}-${String(deleteMonth.getMonth() + 1).padStart(2, '0')}`}
                         onChange={(e) => {
                           const [year, month] = e.target.value.split('-').map(Number);
@@ -131,33 +142,44 @@ const BillingSystemContent = () => {
                     </div>
                     
                     <div className="flex space-x-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowDeleteConfirm(false)}
-                        className="flex-1"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={handleDeleteOrdersForMonth}
-                        className="flex-1"
-                      >
-                        Remove Bills
-                      </Button>
+                      <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex-1">
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowDeleteConfirm(false)}
+                          className="w-full"
+                        >
+                          Cancel
+                        </Button>
+                      </motion.div>
+                      <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex-1">
+                        <Button
+                          variant="destructive"
+                          onClick={handleDeleteOrdersForMonth}
+                          className="w-full"
+                        >
+                          Remove Bills
+                        </Button>
+                      </motion.div>
                     </div>
                   </div>
                 </DialogContent>
               </Dialog>
             </div>
           </div>
-        </div>
+        </motion.div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-              Active Orders
-            </h2>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <div className="flex items-center space-x-2 mb-4">
+              <ClipboardList className="h-5 w-5 text-blue-600" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Active Orders
+              </h2>
+            </div>
             
             {pendingOrders.length === 0 && preparingOrders.length === 0 && readyOrders.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 text-center">
@@ -165,10 +187,13 @@ const BillingSystemContent = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {[...readyOrders, ...preparingOrders, ...pendingOrders].map((order) => (
-                  <div 
+                {[...readyOrders, ...preparingOrders, ...pendingOrders].map((order, index) => (
+                  <motion.div 
                     key={order.id}
-                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all"
                   >
                     <div className="flex justify-between items-start">
                       <div>
@@ -195,39 +220,50 @@ const BillingSystemContent = () => {
                         </span>
                         <p className="text-lg font-bold mt-2 text-blue-600 dark:text-blue-400">
                           {formatCurrency(order.items.reduce((total, item) => {
-                            const menuItem = order.items.find(i => i.id === item.id);
-                            return total + (menuItem ? item.quantity * 0 : 0);
+                            const menuItem = getMenuItemById(item.menuItemId);
+                            return total + (menuItem ? (menuItem.price * item.quantity) : 0);
                           }, 0))}
                         </p>
                       </div>
                     </div>
                     
                     <div className="mt-4 flex space-x-2 justify-end">
-                      <button
-                        onClick={() => setSelectedOrder(order)}
-                        className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
-                      >
-                        View Details
-                      </button>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          View Details
+                        </button>
+                      </motion.div>
                       
-                      <button
-                        onClick={() => handleGenerateBill(order)}
-                        className="px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center"
-                      >
-                        <Printer className="h-4 w-4 mr-1" />
-                        Generate Bill
-                      </button>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <button
+                          onClick={() => handleGenerateBill(order)}
+                          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center"
+                        >
+                          <Printer className="h-4 w-4 mr-1" />
+                          Generate Bill
+                        </button>
+                      </motion.div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
           
-          <div>
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-              Completed Orders
-            </h2>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <div className="flex items-center space-x-2 mb-4">
+              <ClipboardList className="h-5 w-5 text-green-600" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Completed Orders
+              </h2>
+            </div>
             
             {completedOrders.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 text-center">
@@ -235,10 +271,13 @@ const BillingSystemContent = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {completedOrders.map((order) => (
-                  <div 
+                {completedOrders.map((order, index) => (
+                  <motion.div 
                     key={order.id}
-                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700 opacity-80"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 + (index * 0.05) }}
+                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700 opacity-80 hover:opacity-100 hover:shadow-md transition-all"
                   >
                     <div className="flex justify-between items-start">
                       <div>
@@ -259,36 +298,41 @@ const BillingSystemContent = () => {
                         </span>
                         <p className="text-lg font-bold mt-2 text-blue-600 dark:text-blue-400">
                           {formatCurrency(order.items.reduce((total, item) => {
-                            const menuItem = order.items.find(i => i.id === item.id);
-                            return total + (menuItem ? item.quantity * 0 : 0);
+                            const menuItem = getMenuItemById(item.menuItemId);
+                            return total + (menuItem ? (menuItem.price * item.quantity) : 0);
                           }, 0))}
                         </p>
                       </div>
                     </div>
                     
                     <div className="mt-4 flex space-x-2 justify-end">
-                      <button
-                        onClick={() => setSelectedOrder(order)}
-                        className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
-                      >
-                        View Details
-                      </button>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          View Details
+                        </button>
+                      </motion.div>
                       
-                      <button
-                        onClick={() => {
-                          setShowBillPreview(true);
-                        }}
-                        className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-400 text-white hover:bg-gray-500 transition-colors flex items-center"
-                      >
-                        <Printer className="h-4 w-4 mr-1" />
-                        Reprint Bill
-                      </button>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <button
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setShowBillPreview(true);
+                          }}
+                          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-400 text-white hover:bg-gray-500 transition-colors flex items-center"
+                        >
+                          <Printer className="h-4 w-4 mr-1" />
+                          Reprint Bill
+                        </button>
+                      </motion.div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
         </div>
       </main>
       
@@ -299,12 +343,19 @@ const BillingSystemContent = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={(e) => {
+              // Close modal when clicking backdrop
+              if (e.target === e.currentTarget) {
+                setSelectedOrder(null);
+              }
+            }}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className="max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
                 <div className="p-6">
@@ -323,22 +374,26 @@ const BillingSystemContent = () => {
                   />
                   
                   <div className="mt-4 flex space-x-3">
-                    <button
-                      onClick={() => setSelectedOrder(null)}
-                      className="flex-1 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 font-medium rounded-lg transition-colors"
-                    >
-                      Close
-                    </button>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
+                      <button
+                        onClick={() => setSelectedOrder(null)}
+                        className="w-full py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 font-medium rounded-lg transition-colors"
+                      >
+                        Close
+                      </button>
+                    </motion.div>
                     
-                    <button
-                      onClick={() => {
-                        setShowBillPreview(true);
-                      }}
-                      className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center"
-                    >
-                      <Printer className="h-4 w-4 mr-2" />
-                      Generate Bill
-                    </button>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
+                      <button
+                        onClick={() => {
+                          setShowBillPreview(true);
+                        }}
+                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center"
+                      >
+                        <Printer className="h-4 w-4 mr-2" />
+                        Generate Bill
+                      </button>
+                    </motion.div>
                   </div>
                 </div>
               </div>
@@ -354,12 +409,19 @@ const BillingSystemContent = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={(e) => {
+              // Close modal when clicking backdrop
+              if (e.target === e.currentTarget) {
+                setShowBillPreview(false);
+              }
+            }}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className="max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
             >
               <BillPreview
                 order={selectedOrder}
@@ -367,12 +429,14 @@ const BillingSystemContent = () => {
               />
               
               <div className="mt-4 flex justify-center">
-                <button
-                  onClick={() => setShowBillPreview(false)}
-                  className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 font-medium rounded-lg transition-colors"
-                >
-                  Back
-                </button>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <button
+                    onClick={() => setShowBillPreview(false)}
+                    className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 font-medium rounded-lg transition-colors"
+                  >
+                    Back
+                  </button>
+                </motion.div>
               </div>
             </motion.div>
           </motion.div>

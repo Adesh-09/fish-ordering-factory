@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { 
   Order, 
@@ -148,10 +147,11 @@ ITEM                QTY   AMOUNT
 
       // Add items
       orderToPrint.items.forEach(item => {
-        const menuItem = orderToPrint.items.find(i => i.id === item.id);
+        const menuItem = getMenuItemById(item.menuItemId);
         if (menuItem) {
-          const itemName = `${item.menuItemId}`.slice(0, 16).padEnd(16);
-          billContent += `${itemName} ${item.quantity.toString().padStart(3)}   ${formatCurrency(0)}\n`;
+          const itemName = menuItem.nameEn.slice(0, 16).padEnd(16);
+          const itemTotal = menuItem.price * item.quantity;
+          billContent += `${itemName} ${item.quantity.toString().padStart(3)}   ${formatCurrency(itemTotal)}\n`;
         }
       });
 

@@ -6,6 +6,7 @@ import { getMenuItemById } from "@/utils/menuData";
 import { Printer, Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { printDocument } from "@/utils/printerUtils";
+import { toast } from "@/components/ui/use-toast";
 
 interface BillPreviewProps {
   order: Order;
@@ -18,8 +19,9 @@ const BillPreview: React.FC<BillPreviewProps> = ({ order, onPrint }) => {
   const grandTotal = total + gst;
   
   const handleDirectPrint = async () => {
-    // Generate printable content
-    let billContent = `
+    try {
+      // Generate printable content
+      let billContent = `
 JAYESH MACHHI KHANAVAL
 Invoice #: ${order.id.slice(0, 8)}
 Date: ${new Date(order.createdAt).toLocaleDateString()}
@@ -31,21 +33,21 @@ ITEM                QTY   AMOUNT
 -------------------------------
 `;
 
-    // Add items
-    order.items.forEach(item => {
-      const menuItem = getMenuItemById(item.menuItemId);
-      if (menuItem) {
-        const itemTotal = menuItem.price * item.quantity;
-        const itemName = menuItem.nameEn.slice(0, 18).padEnd(18);
-        billContent += `${itemName} ${item.quantity.toString().padStart(3)}   ${formatCurrency(itemTotal)}\n`;
-        
-        if (item.notes) {
-          billContent += `  Note: ${item.notes}\n`;
+      // Add items
+      order.items.forEach(item => {
+        const menuItem = getMenuItemById(item.menuItemId);
+        if (menuItem) {
+          const itemTotal = menuItem.price * item.quantity;
+          const itemName = menuItem.nameEn.slice(0, 18).padEnd(18);
+          billContent += `${itemName} ${item.quantity.toString().padStart(3)}   ${formatCurrency(itemTotal)}\n`;
+          
+          if (item.notes) {
+            billContent += `  Note: ${item.notes}\n`;
+          }
         }
-      }
-    });
+      });
 
-    billContent += `
+      billContent += `
 -------------------------------
 Subtotal:           ${formatCurrency(total)}
 GST (5%):           ${formatCurrency(gst)}
@@ -56,11 +58,27 @@ Thank you for dining with us!
 Please visit again.
 `;
 
-    // Send to printer
-    await printDocument(billContent, "billing");
-    
-    // Execute callback to update UI/state
-    onPrint();
+      // Send to printer
+      const result = await printDocument(billContent, "billing");
+      
+      if (result.success) {
+        toast({
+          title: "Bill Printed Successfully",
+          description: "The bill has been sent to your printer.",
+        });
+        
+        // Execute callback to update UI/state
+        onPrint();
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      toast({
+        title: "Print Failed",
+        description: error instanceof Error ? error.message : "Failed to print bill",
+        variant: "destructive",
+      });
+    }
   };
   
   return (
@@ -71,7 +89,14 @@ Please visit again.
     >
       <div className="p-6">
         <div className="text-center border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
-          <h2 className="text-xl font-bold">जयेश मच्छी खानावल</h2>
+          <motion.h2 
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 300 }}
+            className="text-xl font-bold"
+          >
+            जयेश मच्छी खानावल
+          </motion.h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Jayesh Machhi Khanaval
           </p>
@@ -84,13 +109,23 @@ Please visit again.
           <p className="text-xs text-gray-500 dark:text-gray-400">
             Time: {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
-          <p className="text-sm font-medium mt-2">
+          <motion.p 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-sm font-medium mt-2"
+          >
             Table: {order.tableNumber}
-          </p>
+          </motion.p>
           {order.isTakeAway && (
-            <p className="text-sm font-medium mt-1 bg-amber-100 text-amber-800 inline-block px-2 py-1 rounded">
+            <motion.p 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring" }}
+              className="text-sm font-medium mt-1 bg-amber-100 text-amber-800 inline-block px-2 py-1 rounded"
+            >
               Take Away
-            </p>
+            </motion.p>
           )}
         </div>
         
@@ -105,14 +140,17 @@ Please visit again.
           </div>
           
           <div className="space-y-2">
-            {order.items.map((item) => {
+            {order.items.map((item, index) => {
               const menuItem = getMenuItemById(item.menuItemId);
               if (!menuItem) return null;
               
               return (
-                <div 
+                <motion.div 
                   key={item.id} 
-                  className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 text-sm"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 * index }}
+                  className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 text-sm hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors rounded px-2"
                 >
                   <div className="flex-1">
                     <p className="font-medium text-gray-900 dark:text-white">
@@ -136,7 +174,7 @@ Please visit again.
                       {formatCurrency(menuItem.price * item.quantity)}
                     </span>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -157,33 +195,53 @@ Please visit again.
             </span>
           </div>
           
-          <div className="flex justify-between text-base font-bold mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+          <motion.div 
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.5 }}
+            className="flex justify-between text-base font-bold mt-2 pt-2 border-t border-gray-200 dark:border-gray-700"
+          >
             <span>Total:</span>
             <span className="text-blue-600 dark:text-blue-400">
               {formatCurrency(grandTotal)}
             </span>
-          </div>
+          </motion.div>
         </div>
         
         <div className="mt-6 space-y-3">
-          <Button
-            onClick={handleDirectPrint}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <Printer className="h-5 w-5 mr-2" />
-            Print Bill
-          </Button>
+            <Button
+              onClick={handleDirectPrint}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+            >
+              <Printer className="h-5 w-5 mr-2" />
+              Print Bill
+            </Button>
+          </motion.div>
           
-          <Button variant="outline" className="w-full">
-            <Share className="h-4 w-4 mr-2" />
-            Share Bill
-          </Button>
+          <motion.div
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <Button variant="outline" className="w-full">
+              <Share className="h-4 w-4 mr-2" />
+              Share Bill
+            </Button>
+          </motion.div>
         </div>
         
-        <div className="text-center text-xs text-gray-500 dark:text-gray-400 mt-6">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-center text-xs text-gray-500 dark:text-gray-400 mt-6"
+        >
           <p>Thank you for dining with us!</p>
           <p>Please visit again.</p>
-        </div>
+        </motion.div>
       </div>
     </motion.div>
   );
