@@ -27,11 +27,25 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
     return sum;
   }, 0);
 
+  // Helper function to map status to badge variant
+  const getStatusVariant = (status: Order["status"]) => {
+    switch (status) {
+      case "completed":
+      case "ready":
+      case "served":
+        return "secondary"; // Using secondary for success states
+      case "preparing":
+        return "outline"; // Using outline for warning states
+      default:
+        return "default";
+    }
+  };
+
   return (
     <div className="space-y-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
       <div className="flex justify-between items-start">
         <div>
-          <Badge variant={order.isTakeAway ? "warning" : "default"}>
+          <Badge variant={order.isTakeAway ? "outline" : "default"}>
             {order.isTakeAway ? "Take Away" : `Table ${order.tableNumber}`}
           </Badge>
           <h3 className="text-xl font-bold mt-2">
@@ -47,15 +61,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         
         <div className="flex flex-col items-end">
           <Badge
-            variant={
-              order.status === "completed"
-                ? "success"
-                : order.status === "ready"
-                ? "success"
-                : order.status === "preparing"
-                ? "warning"
-                : "default"
-            }
+            variant={getStatusVariant(order.status)}
           >
             {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
           </Badge>
@@ -135,7 +141,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         <div className="mt-2 grid grid-cols-2 gap-2">
           {order.status === "pending" && (
             <Button
-              variant="warning"
+              variant="outline"
               onClick={() => onChangeStatus("preparing")}
             >
               Start Preparing
@@ -143,7 +149,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           )}
           {order.status === "preparing" && (
             <Button
-              variant="success"
+              variant="secondary"
               onClick={() => onChangeStatus("ready")}
             >
               Mark as Ready
@@ -151,7 +157,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           )}
           {order.status === "ready" && (
             <Button
-              variant="success"
+              variant="secondary"
               onClick={() => onChangeStatus("served")}
             >
               Mark as Served
