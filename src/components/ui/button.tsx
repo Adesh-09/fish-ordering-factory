@@ -10,23 +10,24 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default: "bg-[#5B8FB5] text-white hover:bg-[#517ba1] shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          "bg-[#E76A6A] text-white hover:bg-[#d45555] shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+          "border-2 border-[#A6BB8D] bg-white/50 text-[#3F4E4F] hover:bg-[#EAF1EE] shadow-sm hover:shadow transition-all",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        warning: "bg-amber-500 text-white hover:bg-amber-600",
-        success: "bg-green-500 text-white hover:bg-green-600",
+          "bg-[#A6BB8D] text-[#3F4E4F] hover:bg-[#95aa7c] shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all",
+        ghost: "hover:bg-[#EAF1EE] hover:text-[#3F4E4F] transition-all",
+        link: "text-[#5B8FB5] underline-offset-4 hover:underline",
+        warning: "bg-[#F6C176] text-white hover:bg-[#e5af65] shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all",
+        success: "bg-[#94B49F] text-white hover:bg-[#83a38d] shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all",
       },
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-md px-3",
         lg: "h-11 rounded-md px-8",
         icon: "h-10 w-10",
+        mobile: "h-9 px-3 py-1 text-xs md:h-10 md:px-4 md:py-2 md:text-sm", // New mobile-friendly size
       },
     },
     defaultVariants: {
