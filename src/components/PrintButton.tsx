@@ -1,11 +1,14 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Printer, X, Settings } from "lucide-react";
+import { Printer, X, Settings, Bluetooth, Wifi, UsbIcon, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getConfiguredPrinters, printDocument } from "@/utils/printerUtils";
+import { getConfiguredPrinters, printDocument, testPrinterConnection } from "@/utils/printerUtils";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { PrinterConfig } from "@/types/printerTypes";
+import { useIsMobile } from "@/hooks/use-mobile";
+import BluetoothPrinterScanner from "./BluetoothPrinterScanner";
 
 interface PrintButtonProps {
   onPrint?: (content: string) => void;
@@ -15,10 +18,57 @@ interface PrintButtonProps {
 const PrintButton: React.FC<PrintButtonProps> = ({ onPrint, printContent }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [showPrinterScanner, setShowPrinterScanner] = useState(false);
+  const [activePrinters, setActivePrinters] = useState<PrinterConfig[]>([]);
+  const [checkingPrinters, setCheckingPrinters] = useState(false);
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
-  const printers = getConfiguredPrinters();
-  const hasPrinters = printers.length > 0;
+  useEffect(() => {
+    // Get saved printers whenever the modal is opened
+    if (isOpen) {
+      refreshPrinters();
+    }
+  }, [isOpen]);
+  
+  const refreshPrinters = async () => {
+    const printers = getConfiguredPrinters();
+    setActivePrinters([]);
+    setCheckingPrinters(true);
+    
+    // Check each printer's connection
+    const connectedPrinters: PrinterConfig[] = [];
+    
+    for (const printer of printers) {
+      try {
+        const isConnected = await testPrinterConnection(printer);
+        if (isConnected) {
+          connectedPrinters.push({
+            ...printer,
+            status: "online"
+          });
+        }
+      } catch (error) {
+        console.error(`Error testing printer ${printer.name}:`, error);
+      }
+    }
+    
+    setActivePrinters(connectedPrinters);
+    setCheckingPrinters(false);
+    
+    if (connectedPrinters.length === 0 && printers.length > 0) {
+      toast({
+        title: "No Active Printers",
+        description: "Could not connect to any configured printers. Please check your printer connections.",
+        variant: "warning",
+      });
+    } else if (connectedPrinters.length > 0) {
+      toast({
+        title: "Printers Ready",
+        description: `${connectedPrinters.length} printer${connectedPrinters.length === 1 ? '' : 's'} connected and ready.`,
+      });
+    }
+  };
   
   const handlePrint = async (location?: string) => {
     if (!printContent && !onPrint) {
@@ -36,7 +86,14 @@ const PrintButton: React.FC<PrintButtonProps> = ({ onPrint, printContent }) => {
       if (onPrint && printContent) {
         onPrint(printContent);
       } else if (printContent) {
-        await printDocument(printContent, location as any);
+        const success = await printDocument(printContent, location as any);
+        
+        if (success) {
+          toast({
+            title: "Print Success",
+            description: `Document sent to ${location} printer`,
+          });
+        }
       }
       
       setIsOpen(false);
@@ -49,6 +106,24 @@ const PrintButton: React.FC<PrintButtonProps> = ({ onPrint, printContent }) => {
       });
     } finally {
       setIsPrinting(false);
+    }
+  };
+  
+  const handleBluetoothSelected = (device: BluetoothDevice, printer: PrinterConfig) => {
+    setActivePrinters(prev => [...prev, printer]);
+    setShowPrinterScanner(false);
+  };
+  
+  const getPrinterIcon = (type: string) => {
+    switch (type) {
+      case 'bluetooth':
+        return <Bluetooth className="h-4 w-4 mr-2" />;
+      case 'network':
+        return <Wifi className="h-4 w-4 mr-2" />;
+      case 'usb':
+        return <UsbIcon className="h-4 w-4 mr-2" />;
+      default:
+        return <Printer className="h-4 w-4 mr-2" />;
     }
   };
   
@@ -98,65 +173,121 @@ const PrintButton: React.FC<PrintButtonProps> = ({ onPrint, printContent }) => {
                 </Button>
               </div>
               
-              {!hasPrinters ? (
-                <div className="text-center py-6">
-                  <div className="mx-auto w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center mb-4">
-                    <Printer className="h-6 w-6 text-yellow-600" />
-                  </div>
-                  <h3 className="text-base font-medium text-gray-900 dark:text-white mb-2">
-                    No printers configured
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    You need to set up at least one printer to use this feature.
-                  </p>
-                  <Button
-                    variant="default"
-                    className="bg-blue-600 hover:bg-blue-700"
-                    onClick={() => {
-                      setIsOpen(false);
-                      navigate("/settings");
-                    }}
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Configure Printers
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <Button
-                    variant="default"
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    onClick={() => handlePrint("billing")}
-                    disabled={isPrinting}
-                  >
-                    <Printer className="h-4 w-4 mr-2" />
-                    {isPrinting ? "Printing..." : "Print to Billing Printer"}
-                  </Button>
-                  
-                  <Button
-                    variant="default"
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => handlePrint("kitchen")}
-                    disabled={isPrinting}
-                  >
-                    <Printer className="h-4 w-4 mr-2" />
-                    {isPrinting ? "Printing..." : "Print to Kitchen Printer"}
-                  </Button>
-                  
-                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700 mt-3">
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => {
-                        setIsOpen(false);
-                        navigate("/settings");
-                      }}
+              {showPrinterScanner ? (
+                <div>
+                  <BluetoothPrinterScanner 
+                    onPrinterSelected={() => {}}
+                    onConnectionSuccess={handleBluetoothSelected}
+                  />
+                  <div className="mt-4 flex justify-end">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowPrinterScanner(false)}
                     >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Printer Settings
+                      Back
                     </Button>
                   </div>
                 </div>
+              ) : (
+                <>
+                  <div className="flex justify-between mb-4">
+                    <h4 className="font-medium">Available Printers</h4>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={refreshPrinters} 
+                      disabled={checkingPrinters}
+                      className="text-blue-600"
+                    >
+                      <RefreshCcw className={`h-4 w-4 mr-1 ${checkingPrinters ? 'animate-spin' : ''}`} />
+                      {checkingPrinters ? 'Checking...' : 'Refresh'}
+                    </Button>
+                  </div>
+                
+                  {activePrinters.length === 0 ? (
+                    <div className="text-center py-6">
+                      <div className="mx-auto w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center mb-4">
+                        <Printer className="h-6 w-6 text-yellow-600" />
+                      </div>
+                      <h3 className="text-base font-medium text-gray-900 dark:text-white mb-2">
+                        No active printers
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                        Connect a printer or set one up in settings.
+                      </p>
+                      <div className="flex flex-col space-y-2">
+                        <Button
+                          variant="default"
+                          className="bg-blue-600 hover:bg-blue-700 w-full"
+                          onClick={() => setShowPrinterScanner(true)}
+                        >
+                          <Bluetooth className="h-4 w-4 mr-2" />
+                          Connect Bluetooth Printer
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => {
+                            setIsOpen(false);
+                            navigate("/settings");
+                          }}
+                        >
+                          <Settings className="h-4 w-4 mr-2" />
+                          Printer Settings
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="divide-y border rounded-lg overflow-hidden">
+                        {activePrinters.map((printer, index) => (
+                          <div key={index} className="p-3 bg-white dark:bg-gray-700 flex justify-between items-center">
+                            <div className="flex items-center">
+                              {getPrinterIcon(printer.connectionType)}
+                              <div>
+                                <p className="font-medium">{printer.name}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {printer.location} • {printer.paperWidth}
+                                </p>
+                              </div>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handlePrint(printer.location)}
+                              disabled={isPrinting}
+                            >
+                              <Printer className="h-4 w-4 mr-1" />
+                              Print
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="pt-4 flex justify-between">
+                        <Button
+                          variant="outline"
+                          size={isMobile ? "mobile" : "default"}
+                          onClick={() => setShowPrinterScanner(true)}
+                        >
+                          <Bluetooth className="h-4 w-4 mr-1" />
+                          Add Printer
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size={isMobile ? "mobile" : "default"}
+                          onClick={() => {
+                            setIsOpen(false);
+                            navigate("/settings");
+                          }}
+                        >
+                          <Settings className="h-4 w-4 mr-2" />
+                          Settings
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </motion.div>
           </motion.div>
