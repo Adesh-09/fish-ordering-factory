@@ -1,22 +1,22 @@
 
 import { useEffect, useState } from "react";
+import { 
+  ToastActionElement,
+  ToastProps
+} from "@/components/ui/use-toast";
 
 const TOAST_LIMIT = 5;
 const TOAST_REMOVE_DELAY = 1000000;
 
-export type ToastProps = {
+export type ToasterToast = ToastProps & {
   id: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
-  action?: React.ReactNode;
-  variant?: "default" | "destructive" | "success" | "warning";
+  action?: ToastActionElement;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  variant?: "default" | "destructive" | "success" | "warning";
 };
-
-export type ToasterToast = ToastProps;
-
-export type ToastActionElement = React.ReactNode;
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
