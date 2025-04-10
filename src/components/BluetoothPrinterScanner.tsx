@@ -118,7 +118,8 @@ const BluetoothPrinterScanner: React.FC<BluetoothPrinterScannerProps> = ({
       toast({
         title: "Printer Connected",
         description: `Successfully connected to ${device.name || "Unknown printer"}`,
-        variant: "success",
+        // Changed from "success" to "default" since "success" is not an allowed variant
+        variant: "default",
       });
       
       onPrinterSelected(device);
@@ -211,7 +212,7 @@ const BluetoothPrinterScanner: React.FC<BluetoothPrinterScannerProps> = ({
                   <p className="text-xs text-gray-500">{device.id}</p>
                 </div>
                 <Button 
-                  variant={connectionStatus[device.id] === "connected" ? "success" : "outline"}
+                  variant={connectionStatus[device.id] === "connected" ? "secondary" : "outline"}
                   onClick={() => handleConnect(device)}
                   className="flex items-center"
                   size={isMobile ? "mobile" : "default"}

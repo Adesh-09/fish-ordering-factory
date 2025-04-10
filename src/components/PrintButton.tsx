@@ -60,7 +60,8 @@ const PrintButton: React.FC<PrintButtonProps> = ({ onPrint, printContent }) => {
       toast({
         title: "No Active Printers",
         description: "Could not connect to any configured printers. Please check your printer connections.",
-        variant: "warning",
+        // Changed from "warning" to "default" since "warning" is not an allowed variant
+        variant: "default",
       });
     } else if (connectedPrinters.length > 0) {
       toast({
